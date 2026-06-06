@@ -1,0 +1,96 @@
+{
+  "name": "chm",
+  "version": "0.1.0",
+  "description": "Clone Hero Chart Manager (CHM): search, download and convert Clone Hero charts from RhythmVerse and Chorus Encore.",
+  "main": "./out/main/index.js",
+  "author": "ZIPEEK",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "icon": "node scripts/make-icon.mjs",
+    "dist": "electron-vite build && electron-builder --win nsis",
+    "dist:portable": "electron-vite build && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.zipeek.chm",
+    "productName": "Clone Hero Chart Manager",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../native/onyx/onyx-command-line-20251011-windows-x64",
+        "to": "onyx"
+      },
+      {
+        "from": "../native/7zip/7z.exe",
+        "to": "tools/7z.exe"
+      },
+      {
+        "from": "../native/7zip/7z.dll",
+        "to": "tools/7z.dll"
+      },
+      {
+        "from": "../native/7zip/License.txt",
+        "to": "tools/7-Zip-License.txt"
+      },
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE.txt"
+      },
+      {
+        "from": "../THIRD-PARTY.txt",
+        "to": "THIRD-PARTY.txt"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "CHM-Portable-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Clone Hero Chart Manager",
+      "artifactName": "CHM-Setup-${version}.exe",
+      "uninstallDisplayName": "Clone Hero Chart Manager"
+    }
+  },
+  "dependencies": {
+    "parse-sng": "^4.0.3",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.3.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "png-to-ico": "^3.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  }
+}

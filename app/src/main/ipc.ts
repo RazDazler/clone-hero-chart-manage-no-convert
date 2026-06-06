@@ -1,0 +1,206 @@
+// IPC handlery mezi main a renderer procesem.
+
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { existsSync } from 'fs'
+import type { Database, RhythmVerseSystem, SearchResponse, SongResult } from '../shared/types'
+import { getConfig, setConfig } from './core/config'
+import { search as searchEnchor } from './core/enchor'
+import { peekFileMeta } from './core/filemeta'
+import { bringGameToFront, chExeStatus, isGameRunning } from './core/gamedetect'
+import { hideReminder, showReminder } from './reminder'
+import { jobManager } from './core/jobs'
+import { listSongFolders } from './core/library'
+import {
+  libCopy,
+  libCreateFolder,
+  libList,
+  libMove,
+  libOpen,
+  libRename,
+  libReveal,
+  libTrash
+} from './core/librarymgr'
+import { search as searchRhythmverse } from './core/rhythmverse'
+import { registerHotkeys, unregisterHotkeys } from './hotkeys'
+import { getOverlay, hideOverlay } from './overlay'
+
+let ipcRegistered = false
+let gamePollHandle: NodeJS.Timeout | null = null
+
+export function registerIpc(): void {
+  if (ipcRegistered) return
+  ipcRegistered = true
+  ipcMain.handle(
+    'search',
+    async (
+      _e,
+      text: string,
+      page: number,
+      records: number,
+      system?: RhythmVerseSystem,
+      database?: Database
+    ): Promise<SearchResponse> => {
+      const db: Database = database ?? 'rhythmverse'
+      if (db === 'enchor') {
+        return searchEnchor(text, page, records)
+      }
+      if (db === 'both') {
+        // Spojený režim: stáhne první stránku z obou a dedupuje.
+        const [rv, en] = await Promise.allSettled([
+          searchRhythmverse(text, page, records, system ?? 'ch'),
+          searchEnchor(text, page, records)
+        ])
+        const rvSongs = rv.status === 'fulfilled' ? rv.value.songs : []
+        const enSongs = en.status === 'fulfilled' ? en.value.songs : []
+        const seen = new Set<string>()
+        const merged: SongResult[] = []
+        const key = (s: SongResult): string =>
+          `${s.artist.trim().toLowerCase()}|${s.title.trim().toLowerCase()}|${(
+            s.charter ?? ''
+          )
+            .trim()
+            .toLowerCase()}`
+        // Enchor preferujeme – přímý .sng hosting bývá spolehlivější než GDrive scrape.
+        for (const s of [...enSongs, ...rvSongs]) {
+          const k = key(s)
+          if (seen.has(k)) continue
+          seen.add(k)
+          merged.push(s)
+        }
+        const total =
+          (rv.status === 'fulfilled' ? rv.value.totalFiltered : 0) +
+          (en.status === 'fulfilled' ? en.value.totalFiltered : 0)
+        return { songs: merged, totalFiltered: total, page, records }
+      }
+      return searchRhythmverse(text, page, records, system ?? 'ch')
+    }
+  )
+
+  ipcMain.handle('jobs:enqueue', (_e, song: SongResult, targetSubfolder?: string) =>
+    jobManager.enqueue(song, targetSubfolder)
+  )
+  ipcMain.handle(
+    'jobs:enqueueLocal',
+    (_e, localPath: string, song: SongResult, targetSubfolder?: string) =>
+      jobManager.enqueueLocal(localPath, song, targetSubfolder)
+  )
+  ipcMain.handle('jobs:getAll', () => jobManager.getAll())
+  ipcMain.handle('jobs:clearFinished', () => jobManager.clearFinished())
+  ipcMain.handle('library:listFolders', () => listSongFolders())
+
+  // Správce knihovny
+  ipcMain.handle('lib:list', (_e, rel: string) => libList(rel))
+  ipcMain.handle('lib:createFolder', (_e, rel: string, name: string) => libCreateFolder(rel, name))
+  ipcMain.handle('lib:rename', (_e, relItem: string, newName: string) =>
+    libRename(relItem, newName)
+  )
+  ipcMain.handle('lib:trash', (_e, relItem: string) => libTrash(relItem))
+  ipcMain.handle('lib:move', (_e, src: string, destDir: string) => libMove(src, destDir))
+  ipcMain.handle('lib:copy', (_e, src: string, destDir: string) => libCopy(src, destDir))
+  ipcMain.on('lib:open', (_e, rel: string) => libOpen(rel))
+  ipcMain.on('lib:reveal', (_e, relItem: string) => libReveal(relItem))
+
+  ipcMain.handle('config:get', () => getConfig())
+  ipcMain.handle('config:songsDirExists', () => existsSync(getConfig().songsDir))
+  ipcMain.handle('config:set', (_e, patch) => {
+    const next = setConfig(patch)
+    registerHotkeys() // hotkeys se mohly změnit
+    return next
+  })
+
+  ipcMain.handle('dialog:chooseDir', async () => {
+    const win = getOverlay() ?? undefined
+    const res = await dialog.showOpenDialog(win as BrowserWindow, {
+      properties: ['openDirectory']
+    })
+    return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
+  })
+
+  ipcMain.handle('dialog:chooseSongFile', async () => {
+    const win = getOverlay() ?? undefined
+    const res = await dialog.showOpenDialog(win as BrowserWindow, {
+      title: 'Select a chart file to install',
+      properties: ['openFile'],
+      filters: [
+        {
+          name: 'Charts & archives',
+          extensions: ['zip', 'rar', '7z', 'sng', 'rb3con', 'con']
+        },
+        { name: 'All files', extensions: ['*'] }
+      ]
+    })
+    if (res.canceled || res.filePaths.length === 0) return null
+    const path = res.filePaths[0]
+    const name = path.split(/[\\/]/).pop() || path
+    return { path, name }
+  })
+
+  ipcMain.handle('game:isRunning', () => isGameRunning())
+  ipcMain.handle('game:bringToFront', () => bringGameToFront())
+  ipcMain.handle('game:exeStatus', () => chExeStatus())
+
+  ipcMain.handle('dialog:chooseExe', async () => {
+    const win = getOverlay() ?? undefined
+    const res = await dialog.showOpenDialog(win as BrowserWindow, {
+      title: 'Select Clone Hero.exe',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Executable', extensions: ['exe'] },
+        { name: 'All files', extensions: ['*'] }
+      ]
+    })
+    return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
+  })
+
+  ipcMain.handle('file:peekMeta', (_e, path: string) => peekFileMeta(path))
+
+  // Rozbalí bit.ly/tinyurl/… shortlink na finální URL — slouží jen pro UI label
+  // (renderer pak rozpozná, jestli míří na MEGA / Mediafire / …).
+  ipcMain.handle('url:resolve', async (_e, url: string): Promise<string> => {
+    try {
+      const { expandShortlink } = await import('./core/download')
+      return expandShortlink(url)
+    } catch {
+      return url
+    }
+  })
+
+  ipcMain.on('overlay:hide', () => hideOverlay())
+  ipcMain.on('app:quit', () => app.quit())
+  ipcMain.on('hotkeys:pause', () => unregisterHotkeys())
+  ipcMain.on('hotkeys:resume', () => registerHotkeys())
+  ipcMain.on('shell:openExternal', (_e, url: string) => {
+    if (typeof url === 'string' && /^https?:\/\//.test(url)) shell.openExternal(url)
+  })
+
+  // Přeposílání průběhu úloh do renderer procesu.
+  jobManager.on('update', (job) => {
+    getOverlay()?.webContents.send('jobs:update', job)
+  })
+
+  // Polling stavu hry — vysílá změny rendereru + řídí reminder pill.
+  let lastRunning: boolean | null = null
+  const pollGame = async (): Promise<void> => {
+    const running = await isGameRunning()
+    if (running !== lastRunning) {
+      const wasRunning = lastRunning === true
+      lastRunning = running
+      getOverlay()?.webContents.send('game:status', running)
+
+      if (running && !wasRunning) {
+        // CH se právě spustil → ukázat reminder pill (pokud je v Settings ON
+        // a naše okno momentálně není v popředí).
+        const main = getOverlay()
+        if (!main || !main.isVisible() || !main.isFocused()) {
+          showReminder()
+        }
+      } else if (!running && wasRunning) {
+        // CH se vypnul → schovat pill (kdyby zrovna svítil).
+        hideReminder()
+      }
+    }
+  }
+  void pollGame()
+  if (gamePollHandle) clearInterval(gamePollHandle)
+  gamePollHandle = setInterval(pollGame, 3000)
+}

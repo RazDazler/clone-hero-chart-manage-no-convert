@@ -1,0 +1,25 @@
+THIRD-PARTY SOFTWARE
+====================
+
+This application's own code (the app/ folder) is licensed under the MIT
+license (see the LICENSE file).
+
+The application invokes / bundles the following separate programs, which
+keep THEIR OWN licenses:
+
+1) Onyx Music Game Toolkit
+   - Use: converting Rock Band CON / .rb3con into the Clone Hero format.
+   - Runs as a separate program via the command line (onyx.exe).
+   - License: GNU GPL v3 (full text in onyx/.../LICENSE.txt).
+   - Source code: https://github.com/mtolly/onyx
+
+2) 7-Zip (7z.exe, 7z.dll)
+   - Use: extracting downloaded archives (zip/7z/rar).
+   - License: GNU LGPL (plus the unRAR restriction for RAR parts).
+   - Source / info: https://www.7-zip.org
+
+3) Electron, React and other npm packages
+   - License: mostly MIT (see each package in node_modules).
+
+Song data comes from RhythmVerse (https://rhythmverse.co) via its publicly
+available web interface; this application is not officially affiliated with it.

@@ -1,0 +1,80 @@
+// Rozbalení .sng (Songs Next Generation) kontejneru do CH-kompatibilní složky.
+//
+// .sng je single-file formát z Encore: header + XOR-masked file table + obsah.
+// Clone Hero ho čte nativně až od v1.0 (2024). Starší verze ho ignorují,
+// proto vždycky raději rozbalíme do plné složky.
+
+import { createReadStream, createWriteStream } from 'fs'
+import { mkdir } from 'fs/promises'
+import { join } from 'path'
+import { Readable } from 'stream'
+import { pipeline } from 'stream/promises'
+import { SngStream } from 'parse-sng'
+
+/** Magic prefix `SNGPKG` (ASCII). */
+const SNG_MAGIC = Buffer.from([0x53, 0x4e, 0x47, 0x50, 0x4b, 0x47])
+
+/** Bezpečné jméno složky/souboru (žádné Windows zakázané znaky). */
+function sanitize(name: string): string {
+  return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim() || 'song'
+}
+
+/** Detekuje .sng podle magic bytů — robustnější než přípona. */
+export async function isSngFile(filePath: string): Promise<boolean> {
+  try {
+    const fd = createReadStream(filePath, { start: 0, end: 5 })
+    const chunks: Buffer[] = []
+    for await (const c of fd) chunks.push(c as Buffer)
+    const head = Buffer.concat(chunks).subarray(0, 6)
+    return head.length === 6 && head.equals(SNG_MAGIC)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Rozbalí .sng soubor do `outDir`. Vytvoří podsložku pojmenovanou podle
+ * `name` (typicky "Artist - Title"), do ní zapíše všechny soubory + song.ini.
+ *
+ * `parse-sng` poskytuje SngStream s eventy `header` a `file`. Při `file` se
+ * musí volat `nextFile()` aby zpracoval další; pokud je nextFile null, jsme
+ * na konci.
+ */
+export async function extractSng(
+  sngPath: string,
+  outDir: string,
+  name: string
+): Promise<string> {
+  const songDir = join(outDir, sanitize(name))
+  await mkdir(songDir, { recursive: true })
+
+  // parse-sng očekává Web ReadableStream. Převedeme Node read stream
+  // (cast přes unknown – Node typings nejsou s lib.dom ReadableStream<T> kompatibilní).
+  const nodeStream = createReadStream(sngPath)
+  const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>
+  const sng = new SngStream(webStream, { generateSongIni: true })
+
+  await new Promise<void>((resolve, reject) => {
+    let pending: Promise<void> = Promise.resolve()
+
+    sng.on('error', (err: unknown) => reject(err instanceof Error ? err : new Error(String(err))))
+
+    sng.on('file', (fileName: string, fileStream: ReadableStream<Uint8Array>, nextFile) => {
+      const safe = sanitize(fileName)
+      const dest = join(songDir, safe)
+      const writeNode = Readable.fromWeb(fileStream as unknown as Parameters<typeof Readable.fromWeb>[0])
+      // Sequence: zapiš tenhle soubor, pak teprve nextFile() nebo resolve.
+      pending = pending
+        .then(() => pipeline(writeNode, createWriteStream(dest)))
+        .then(() => {
+          if (nextFile) nextFile()
+          else resolve()
+        })
+        .catch(reject)
+    })
+
+    sng.start()
+  })
+
+  return songDir
+}

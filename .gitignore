@@ -1,0 +1,20 @@
+# Dependencies & build output
+app/node_modules/
+app/out/
+app/dist/
+app/*.tsbuildinfo
+
+# Velké binárky třetích stran — uživatel si je dolije lokálně (viz README)
+native/
+
+# Release artefakty — distribuují se přes GitHub Releases, ne v repu
+release/installer/*.exe
+release/portable/*.exe
+*.zip
+
+# Logy / OS / IDE
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
