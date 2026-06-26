@@ -1,3 +1,6 @@
+<img width="2470" height="1997" alt="603959973-2b1f01a2-35ff-4d34-9542-00e8f0582bbc" src="https://github.com/user-attachments/assets/4e44a7bc-7ca9-4549-9218-329ce63bc476" />
+https://chartmanager.pages.dev/
+
 # Clone Hero Chart Manager (CHM)
 
 A Windows desktop app for searching, downloading and automatically converting
