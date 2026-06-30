@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import chLogoUrl from './assets/CloneHero_Logo.png'
+import chLogoUrl from './assets/CHM_logo.png'
 import { DownloadQueue } from './components/DownloadQueue'
 import { FilterBar } from './components/FilterBar'
 import { Icon } from './components/Icon'

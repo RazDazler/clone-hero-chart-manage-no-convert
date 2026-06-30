@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from './Icon'
+import logoUrl from '../assets/CHM_logo.png'
 
 type Game = 'clone-hero' | 'yarg' | null
 
@@ -85,16 +86,12 @@ export function TitleBar(): JSX.Element {
       </div>
 
       <div className="titlebar__brand">
-        <h1 className="brand" aria-label="Clone Hero Chart Manager">
-          <span className="brand__ch">
-            <span className="brand__ch-c">C</span>
-            <span className="brand__ch-h">H</span>
-            <span className="brand__ch-sub" aria-hidden="true">
-              Clone Hero
-            </span>
-          </span>
-          <span className="brand__rest">ART&nbsp;MANAGER</span>
-        </h1>
+        <img
+          className="brand-logo"
+          src={logoUrl}
+          alt="Clone Hero Chart Manager"
+          draggable={false}
+        />
       </div>
 
       <div className="titlebar__actions">

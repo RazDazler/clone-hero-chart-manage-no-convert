@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Database, RhythmVerseSystem, SongResult } from '../../../shared/types'
 import { useStore } from '../store'
 import { Icon } from './Icon'
+import { Segmented } from './Segmented'
 
 const DATABASES: { id: Database; label: string; hint: string }[] = [
   {
@@ -161,39 +162,27 @@ export function SearchBar(): JSX.Element {
     <div className="searchbar searchbar--stacked">
       <div className="searchbar__row">
         <span className="searchbar__sublabel">Database</span>
-        <div className="searchbar__systems searchbar__systems--db">
-          {DATABASES.map((d) => (
-            <button
-              key={d.id}
-              className={`sys ${database === d.id ? 'sys--active' : ''}`}
-              title={d.hint}
-              onClick={() => {
-                setDatabase(d.id)
-                if (query.trim()) doSearch(1)
-              }}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          variant="db"
+          options={DATABASES}
+          value={database}
+          onChange={(id) => {
+            setDatabase(id)
+            if (query.trim()) doSearch(1)
+          }}
+        />
         {showSystems ? (
           <>
             <span className="searchbar__sublabel">System</span>
-            <div className="searchbar__systems">
-              {SYSTEMS.map((s) => (
-                <button
-                  key={s.id}
-                  className={`sys ${system === s.id ? 'sys--active' : ''}`}
-                  title={s.hint}
-                  onClick={() => {
-                    setSystem(s.id)
-                    if (query.trim()) doSearch(1)
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              variant="system"
+              options={SYSTEMS}
+              value={system}
+              onChange={(id) => {
+                setSystem(id)
+                if (query.trim()) doSearch(1)
+              }}
+            />
           </>
         ) : null}
       </div>
