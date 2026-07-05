@@ -13,7 +13,9 @@ import { SongRow } from './components/SongRow'
 import { SortSelect } from './components/SortSelect'
 import { TargetFolderModal } from './components/TargetFolderModal'
 import { TitleBar } from './components/TitleBar'
+import { UpdateBanner } from './components/UpdateBanner'
 import { useStore } from './store'
+import { isAutoDownloadable } from './utils'
 
 export function App(): JSX.Element {
   const results = useStore((s) => s.results)
@@ -57,6 +59,35 @@ export function App(): JSX.Element {
   const openDownload = useStore((s) => s.openDownload)
   const openMarketplace = useStore((s) => s.openMarketplace)
   const doSearch = useStore((s) => s.doSearch)
+
+  // Multi-select
+  const selectedKeys = useStore((s) => s.selectedKeys)
+  const toggleSelected = useStore((s) => s.toggleSelected)
+  const setSelection = useStore((s) => s.setSelection)
+  const clearSelection = useStore((s) => s.clearSelection)
+  const openBatchDownload = useStore((s) => s.openBatchDownload)
+
+  const selectedSet = useMemo(() => new Set(selectedKeys), [selectedKeys])
+  // Zaškrtnutelné = auto-stažitelné a ještě nezařazené do fronty.
+  const checkableSongs = useMemo(
+    () => visible.filter((s) => isAutoDownloadable(s) && !enqueuedKeys[s.key]),
+    [visible, enqueuedKeys]
+  )
+  // Skutečně stažitelné vybrané položky (průnik výběru s aktuálně viditelnými) —
+  // aby počet i akce seděly i po změně filtru nástroje.
+  const visibleSelected = useMemo(
+    () => visible.filter((s) => selectedSet.has(s.key)),
+    [visible, selectedSet]
+  )
+  const selectedCount = visibleSelected.length
+  const allChecked = checkableSongs.length > 0 && checkableSongs.every((s) => selectedSet.has(s.key))
+  const toggleSelectAll = (): void => {
+    if (allChecked) clearSelection()
+    else setSelection(checkableSongs.map((s) => s.key))
+  }
+  const downloadSelected = (): void => {
+    if (visibleSelected.length > 0) void openBatchDownload(visibleSelected)
+  }
 
   // Akce „stáhnout" – oficiální DLC místo toho nabídne otevření obchodu.
   const triggerDownload = (song: (typeof results)[number]): void => {
@@ -102,6 +133,7 @@ export function App(): JSX.Element {
 
       // Když je otevřený modal výběru složky, klávesy řeší samotný modal.
       if (useStore.getState().pendingSong) return
+      if (useStore.getState().pendingBatch) return
       if (useStore.getState().pendingLocal) return
       // Dotaz na obchod (oficiální DLC): jen Escape zavře.
       if (useStore.getState().marketplacePrompt) {
@@ -168,6 +200,7 @@ export function App(): JSX.Element {
   return (
     <div className="app">
       <TitleBar />
+      <UpdateBanner />
       <SearchBar />
       <FilterBar />
 
@@ -192,6 +225,15 @@ export function App(): JSX.Element {
 
       {results.length > 0 && !loading && !error ? (
         <div className="resultsbar">
+          {checkableSongs.length > 0 ? (
+            <label className="chk chk--selectall" title="Select all downloadable songs">
+              <input type="checkbox" checked={allChecked} onChange={toggleSelectAll} />
+              <span className="chk__box">
+                <Icon name="check" size={12} />
+              </span>
+              <span className="chk__label">All</span>
+            </label>
+          ) : null}
           <span className="resultsbar__count">
             <strong>{totalFiltered}</strong> results found
             {query ? (
@@ -201,7 +243,20 @@ export function App(): JSX.Element {
               </>
             ) : null}
           </span>
-          <SortSelect />
+          <div className="resultsbar__right">
+            {selectedCount > 0 ? (
+              <div className="batchbar">
+                <span className="batchbar__count">{selectedCount} selected</span>
+                <button className="batchbar__dl" onClick={downloadSelected}>
+                  <Icon name="download" size={14} /> Download selected
+                </button>
+                <button className="batchbar__clear" onClick={clearSelection} title="Clear selection">
+                  <Icon name="close" size={13} />
+                </button>
+              </div>
+            ) : null}
+            <SortSelect />
+          </div>
         </div>
       ) : null}
 
@@ -225,6 +280,9 @@ export function App(): JSX.Element {
               key={song.key}
               song={song}
               selected={i === selectedIndex}
+              checked={selectedSet.has(song.key)}
+              checkable={isAutoDownloadable(song) && !enqueuedKeys[song.key]}
+              onToggleCheck={() => toggleSelected(song.key)}
               job={enqueuedKeys[song.key] ? jobs[enqueuedKeys[song.key]] : undefined}
               onSelect={() => setSelectedIndex(i)}
               onDownload={() => triggerDownload(song)}

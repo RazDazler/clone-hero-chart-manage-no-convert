@@ -4,43 +4,51 @@ import { Icon } from './Icon'
 
 export function TargetFolderModal(): JSX.Element | null {
   const pendingSong = useStore((s) => s.pendingSong)
+  const pendingBatch = useStore((s) => s.pendingBatch)
   const folders = useStore((s) => s.folders)
   const foldersLoading = useStore((s) => s.foldersLoading)
   const lastSubfolder = useStore((s) => s.lastSubfolder)
   const confirmDownload = useStore((s) => s.confirmDownload)
   const cancelDownload = useStore((s) => s.cancelDownload)
+  const confirmBatchDownload = useStore((s) => s.confirmBatchDownload)
+  const cancelBatchDownload = useStore((s) => s.cancelBatchDownload)
+
+  const isBatch = pendingBatch !== null
+  const batchCount = pendingBatch?.length ?? 0
 
   const [selected, setSelected] = useState<string>(lastSubfolder)
   const [newFolder, setNewFolder] = useState('')
   const [filter, setFilter] = useState('')
   const newInputRef = useRef<HTMLInputElement>(null)
 
-  // Reset při otevření pro novou píseň.
+  // Reset při otevření (pro píseň i pro dávku).
   useEffect(() => {
-    if (pendingSong) {
+    if (pendingSong || pendingBatch) {
       setSelected(lastSubfolder)
       setNewFolder('')
       setFilter('')
     }
-  }, [pendingSong, lastSubfolder])
+  }, [pendingSong, pendingBatch, lastSubfolder])
 
   const filtered = useMemo(
     () => folders.filter((f) => f.toLowerCase().includes(filter.toLowerCase())),
     [folders, filter]
   )
 
-  if (!pendingSong) return null
+  if (!pendingSong && !pendingBatch) return null
 
   // Cíl: nová složka má přednost, jinak vybraná (prázdné = kořen Songs).
   const target = newFolder.trim() || selected
 
-  const confirm = () => void confirmDownload(target)
+  const cancel = (): void => (isBatch ? cancelBatchDownload() : cancelDownload())
+  const confirm = (): void =>
+    void (isBatch ? confirmBatchDownload(target) : confirmDownload(target))
 
   return (
     <div
       className="modal-overlay"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) cancelDownload()
+        if (e.target === e.currentTarget) cancel()
       }}
     >
       <div
@@ -51,20 +59,28 @@ export function TargetFolderModal(): JSX.Element | null {
             e.preventDefault()
             confirm()
           } else if (e.key === 'Escape') {
-            cancelDownload()
+            cancel()
           }
         }}
       >
         <div className="modal__head">
           <h2>Where to save?</h2>
-          <button className="modal__close" onClick={cancelDownload}>
+          <button className="modal__close" onClick={cancel}>
             ✕
           </button>
         </div>
 
         <div className="modal__body">
           <div className="folder-song">
-            {pendingSong.artist} – <strong>{pendingSong.title}</strong>
+            {isBatch ? (
+              <strong>
+                {batchCount} {batchCount === 1 ? 'song' : 'songs'} selected
+              </strong>
+            ) : (
+              <>
+                {pendingSong?.artist} – <strong>{pendingSong?.title}</strong>
+              </>
+            )}
           </div>
 
           <input
@@ -101,7 +117,7 @@ export function TargetFolderModal(): JSX.Element | null {
                   onDoubleClick={() => {
                     setSelected(f)
                     setNewFolder('')
-                    void confirmDownload(f)
+                    void (isBatch ? confirmBatchDownload(f) : confirmDownload(f))
                   }}
                 >
                   <Icon name="folder" size={15} /> {f}
@@ -122,15 +138,17 @@ export function TargetFolderModal(): JSX.Element | null {
         </div>
 
         <div className="modal__foot">
-          <button className="btn-secondary" onClick={cancelDownload}>
+          <button className="btn-secondary" onClick={cancel}>
             Cancel
           </button>
           <button className="btn-primary" onClick={confirm}>
-            {newFolder.trim()
-              ? `Create & download → ${newFolder.trim()}`
-              : target
-                ? `Download → ${target}`
-                : 'Download to root'}
+            {isBatch
+              ? `Download ${batchCount} → ${target || 'root'}`
+              : newFolder.trim()
+                ? `Create & download → ${newFolder.trim()}`
+                : target
+                  ? `Download → ${target}`
+                  : 'Download to root'}
           </button>
         </div>
       </div>

@@ -396,6 +396,73 @@ body {
   box-shadow: 0 6px 16px -4px rgba(226, 59, 91, 0.55);
 }
 
+/* ---------- Update banner ---------- */
+.updatebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 10px 0;
+  padding: 9px 12px 9px 14px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(124, 92, 255, 0.16), rgba(255, 77, 141, 0.12));
+  border: 1px solid rgba(124, 92, 255, 0.4);
+  animation: batchbarIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.updatebar__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent-grad);
+  color: #fff;
+  flex-shrink: 0;
+}
+.updatebar__text {
+  font-size: 13px;
+  color: var(--text);
+  margin-right: auto;
+}
+.updatebar__text strong {
+  font-weight: 700;
+}
+.updatebar__btn {
+  border: 1px solid rgba(124, 92, 255, 0.5);
+  border-radius: 999px;
+  background: rgba(124, 92, 255, 0.12);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+  padding: 7px 15px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+}
+.updatebar__btn:hover {
+  background: rgba(124, 92, 255, 0.22);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.updatebar__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.updatebar__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
 /* ---------- Search bar ---------- */
 .searchbar {
   display: flex;
@@ -1069,6 +1136,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 14px;
   padding: 10px 18px 10px 22px;
   margin: 10px 10px 6px;
   border-radius: 12px;
@@ -1094,11 +1162,140 @@ body {
 .resultsbar__count {
   font-size: 13px;
   color: var(--text-dim);
+  margin-right: auto;
 }
 .resultsbar__count strong,
 .resultsbar__count b {
   color: var(--text);
   font-weight: 700;
+}
+.resultsbar__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---------- Multi-select ---------- */
+/* Vlastní checkbox (skrytý nativní input + stylovaný box). */
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  user-select: none;
+}
+.chk input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.chk__box {
+  width: 19px;
+  height: 19px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  transition: background 0.16s, border-color 0.16s, color 0.16s, transform 0.08s;
+  flex-shrink: 0;
+}
+.chk:hover .chk__box {
+  border-color: var(--accent);
+}
+.chk input:checked + .chk__box {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #fff;
+}
+.chk input:focus-visible + .chk__box {
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.35);
+}
+.chk input:checked + .chk__box {
+  transform: scale(1.05);
+}
+.chk__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+}
+.chk--selectall .chk__box {
+  width: 18px;
+  height: 18px;
+}
+
+/* Hromadná akční lišta (zobrazí se, když je něco vybráno). */
+.batchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 999px;
+  background: rgba(124, 92, 255, 0.12);
+  border: 1px solid rgba(124, 92, 255, 0.4);
+  animation: batchbarIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes batchbarIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.batchbar__count {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+.batchbar__dl {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent-grad);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+  padding: 7px 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -4px rgba(255, 77, 141, 0.5);
+  transition: transform 0.15s, filter 0.15s;
+}
+.batchbar__dl:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+.batchbar__dl:active {
+  transform: translateY(0) scale(0.97);
+}
+.batchbar__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.batchbar__clear:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
 }
 
 /* ---------- Results list ---------- */
@@ -1173,8 +1370,8 @@ body {
 /* ---------- Song row ---------- */
 .song {
   display: grid;
-  grid-template-columns: 60px minmax(150px, 1fr) auto 148px 30px;
-  gap: 16px;
+  grid-template-columns: 22px 60px minmax(150px, 1fr) auto 148px 30px;
+  gap: 14px;
   align-items: center;
   padding: 12px 14px;
   border-radius: 14px;
@@ -1210,6 +1407,24 @@ body {
   background: var(--row-hover);
   border-color: rgba(124, 92, 255, 0.22);
   transform: translateX(3px);
+}
+/* Checkbox sloupec — box se plně zobrazí na hover řádku nebo když je zaškrtnutý. */
+.song__check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.song__check .chk__box {
+  opacity: 0.45;
+  transition: opacity 0.16s, background 0.16s, border-color 0.16s, color 0.16s, transform 0.08s;
+}
+.song:hover .song__check .chk__box,
+.song--checked .song__check .chk__box {
+  opacity: 1;
+}
+.song--checked {
+  background: rgba(124, 92, 255, 0.08);
+  border-color: rgba(124, 92, 255, 0.35);
 }
 .song--selected {
   background: rgba(139, 92, 246, 0.1);

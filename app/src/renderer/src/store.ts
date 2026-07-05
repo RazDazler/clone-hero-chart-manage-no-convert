@@ -6,6 +6,7 @@ import type {
   RhythmVerseSystem,
   SongResult
 } from '../../shared/types'
+import { isAutoDownloadable } from './utils'
 
 export type SortKey = 'relevance' | 'title' | 'artist' | 'length'
 
@@ -44,6 +45,10 @@ interface AppState {
   foldersLoading: boolean
   lastSubfolder: string
 
+  // Multi-select (hromadné stažení) — klíče vybraných písní + čekající dávka.
+  selectedKeys: string[]
+  pendingBatch: SongResult[] | null
+
   // Klíč aktuálně otevřeného ⋮ menu (jen jedno najednou).
   openRowMenu: string | null
 
@@ -69,6 +74,13 @@ interface AppState {
   openDownload: (song: SongResult) => Promise<void>
   confirmDownload: (subfolder: string) => Promise<void>
   cancelDownload: () => void
+  // Multi-select
+  toggleSelected: (key: string) => void
+  setSelection: (keys: string[]) => void
+  clearSelection: () => void
+  openBatchDownload: (songs: SongResult[]) => Promise<void>
+  confirmBatchDownload: (subfolder: string) => Promise<void>
+  cancelBatchDownload: () => void
   openMarketplace: (song: SongResult) => void
   closeMarketplace: () => void
   setOpenRowMenu: (key: string | null) => void
@@ -168,6 +180,8 @@ export const useStore = create<AppState>((set, get) => ({
   folders: [],
   foldersLoading: false,
   lastSubfolder: '',
+  selectedKeys: [],
+  pendingBatch: null,
   openRowMenu: null,
   pendingLocal: null,
 
@@ -207,7 +221,8 @@ export const useStore = create<AppState>((set, get) => ({
         totalFiltered: res.totalFiltered,
         page: res.page,
         loading: false,
-        selectedIndex: 0
+        selectedIndex: 0,
+        selectedKeys: [] // nový výsledek → zruš předchozí výběr
       })
     } catch (e) {
       set({ loading: false, error: e instanceof Error ? e.message : String(e) })
@@ -236,6 +251,50 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   cancelDownload: () => set({ pendingSong: null }),
+
+  // ---- Multi-select ----
+  toggleSelected: (key) =>
+    set((s) => ({
+      selectedKeys: s.selectedKeys.includes(key)
+        ? s.selectedKeys.filter((k) => k !== key)
+        : [...s.selectedKeys, key]
+    })),
+  setSelection: (keys) => set({ selectedKeys: keys }),
+  clearSelection: () => set({ selectedKeys: [] }),
+
+  openBatchDownload: async (songs) => {
+    const { enqueuedKeys } = get()
+    // Jen auto-stažitelné a ještě nezařazené (přeskoč oficiální DLC, MEGA/Mediafire…).
+    const downloadable = songs.filter((s) => isAutoDownloadable(s) && !enqueuedKeys[s.key])
+    if (downloadable.length === 0) return
+    set({ pendingBatch: downloadable, foldersLoading: true })
+    try {
+      const folders = await window.api.listSongFolders()
+      set({ folders, foldersLoading: false })
+    } catch {
+      set({ folders: [], foldersLoading: false })
+    }
+  },
+  confirmBatchDownload: async (subfolder) => {
+    const batch = get().pendingBatch
+    if (!batch) return
+    const newEntries: Record<string, string> = {}
+    for (const song of batch) {
+      try {
+        const jobId = await window.api.enqueueDownload(song, subfolder || undefined)
+        newEntries[song.key] = jobId
+      } catch {
+        /* jednotlivé selhání nezastaví dávku */
+      }
+    }
+    set((s) => ({
+      enqueuedKeys: { ...s.enqueuedKeys, ...newEntries },
+      pendingBatch: null,
+      selectedKeys: [],
+      lastSubfolder: subfolder
+    }))
+  },
+  cancelBatchDownload: () => set({ pendingBatch: null }),
 
   openMarketplace: (song) => set({ marketplacePrompt: song }),
   closeMarketplace: () => set({ marketplacePrompt: null }),

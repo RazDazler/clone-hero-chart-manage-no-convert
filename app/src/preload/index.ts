@@ -8,7 +8,8 @@ import type {
   LibListing,
   RhythmVerseSystem,
   SearchResponse,
-  SongResult
+  SongResult,
+  UpdateInfo
 } from '../shared/types'
 
 const api = {
@@ -115,7 +116,9 @@ const api = {
     return () => ipcRenderer.removeListener('hotkey', handler)
   },
 
-  openExternal: (url: string) => ipcRenderer.send('shell:openExternal', url)
+  openExternal: (url: string) => ipcRenderer.send('shell:openExternal', url),
+
+  checkUpdate: () => ipcRenderer.invoke('app:checkUpdate') as Promise<UpdateInfo | null>
 }
 
 contextBridge.exposeInMainWorld('api', api)

@@ -1,6 +1,11 @@
 import { memo, useEffect, useState } from 'react'
 import type { DownloadJob, SongResult } from '../../../shared/types'
-import { formatLabel, formatLength } from '../utils'
+import {
+  detectManualHost,
+  formatLabel,
+  formatLength,
+  type ManualHost
+} from '../utils'
 import { Icon } from './Icon'
 import { InstrumentDifficulty } from './InstrumentDifficulty'
 import { RowMenu } from './RowMenu'
@@ -22,6 +27,11 @@ interface Props {
   song: SongResult
   selected: boolean
   job?: DownloadJob
+  /** Multi-select: je řádek zaškrtnutý pro hromadné stažení? */
+  checked?: boolean
+  /** Multi-select: lze řádek zaškrtnout (auto-stažitelný, nezařazený)? */
+  checkable?: boolean
+  onToggleCheck?: () => void
   onSelect: () => void
   onDownload: () => void
   onMarketplace: () => void
@@ -44,23 +54,6 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
 }
 
-type ManualHost = 'MEGA' | 'Mediafire' | 'Shortener' | null
-
-const SHORTENER_RE =
-  /^https?:\/\/(?:[a-z0-9-]+\.)?(?:bit\.ly|tinyurl\.com|t\.co|goo\.gl|ow\.ly|buff\.ly|is\.gd|v\.gd|cutt\.ly|shorturl\.at|rb\.gy)\//i
-
-/** Hostitelé, u kterých nemáme spolehlivé auto-stažení (MEGA / Mediafire / shortener). */
-function detectManualHost(source: string | null, url: string | null): ManualHost {
-  const src = (source || '').toLowerCase()
-  if (src.includes('mega')) return 'MEGA'
-  if (src.includes('mediafire')) return 'Mediafire'
-  if (!url) return null
-  if (/mega\.(nz|co\.nz|io)/i.test(url)) return 'MEGA'
-  if (/mediafire\.com/i.test(url)) return 'Mediafire'
-  if (SHORTENER_RE.test(url)) return 'Shortener'
-  return null
-}
-
 function manualLabel(host: Exclude<ManualHost, null>): string {
   if (host === 'Shortener') return 'Download manually'
   return `Get on ${host}`
@@ -70,6 +63,9 @@ function SongRowBase({
   song,
   selected,
   job,
+  checked = false,
+  checkable = false,
+  onToggleCheck,
   onSelect,
   onDownload,
   onMarketplace
@@ -114,10 +110,26 @@ function SongRowBase({
 
   return (
     <div
-      className={`song ${selected ? 'song--selected' : ''}`}
+      className={`song ${selected ? 'song--selected' : ''} ${checked ? 'song--checked' : ''}`}
       onClick={onSelect}
       onDoubleClick={onDownload}
     >
+      <div className="song__check">
+        {checkable ? (
+          <label className="chk" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={() => onToggleCheck?.()}
+              aria-label={`Select ${song.artist} - ${song.title}`}
+            />
+            <span className="chk__box">
+              <Icon name="check" size={12} />
+            </span>
+          </label>
+        ) : null}
+      </div>
+
       <div className="song__art">
         <AlbumArt url={song.albumArtUrl} />
       </div>
@@ -220,6 +232,8 @@ function SongRowBase({
 export const SongRow = memo(SongRowBase, (prev, next) => {
   if (prev.song.key !== next.song.key) return false
   if (prev.selected !== next.selected) return false
+  if (prev.checked !== next.checked) return false
+  if (prev.checkable !== next.checkable) return false
   if (prev.job?.id !== next.job?.id) return false
   if (prev.job?.stage !== next.job?.stage) return false
   if (prev.job?.progress !== next.job?.progress) return false

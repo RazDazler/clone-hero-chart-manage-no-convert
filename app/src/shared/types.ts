@@ -118,6 +118,14 @@ export interface LibListing {
   entries: LibEntry[]
 }
 
+export interface UpdateInfo {
+  current: string
+  latest: string
+  hasUpdate: boolean
+  /** URL stránky s vydáním na GitHubu. */
+  url: string
+}
+
 /** API vystavené do renderer procesu přes contextBridge (window.api). */
 export interface RendererApi {
   search(
@@ -182,4 +190,6 @@ export interface RendererApi {
   resumeHotkeys(): void
   onHotkey(cb: (action: string) => void): () => void
   openExternal(url: string): void
+  /** Zkontroluje nejnovější GitHub release. `null` = chyba/offline (tiché). */
+  checkUpdate(): Promise<UpdateInfo | null>
 }

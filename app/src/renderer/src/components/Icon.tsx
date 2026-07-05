@@ -43,6 +43,7 @@ export type IconName =
   | 'paste'
   | 'refresh'
   | 'note'
+  | 'check'
 
 // Obsah jednotlivých ikon (viewBox 0 0 24 24). Stroke dědí currentColor.
 const PATHS: Record<IconName, JSX.Element> = {
@@ -135,6 +136,7 @@ const PATHS: Record<IconName, JSX.Element> = {
     </>
   ),
   caret: <polyline points="6 9 12 15 18 9" />,
+  check: <polyline points="20 6 9 17 4 12" />,
   chevronLeft: <polyline points="15 6 9 12 15 18" />,
   chevronRight: <polyline points="9 6 15 12 9 18" />,
   folder: (

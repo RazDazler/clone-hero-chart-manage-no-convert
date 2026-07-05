@@ -1,4 +1,4 @@
-import type { InstrumentDifficulties } from '../../shared/types'
+import type { InstrumentDifficulties, SongResult } from '../../shared/types'
 import type { IconName } from './components/Icon'
 
 export function formatLength(seconds: number | null): string {
@@ -44,3 +44,32 @@ export const INSTRUMENTS: InstrumentMeta[] = [
 ]
 
 export const MAX_DIFFICULTY = 6
+
+export type ManualHost = 'MEGA' | 'Mediafire' | 'Shortener' | null
+
+export const SHORTENER_RE =
+  /^https?:\/\/(?:[a-z0-9-]+\.)?(?:bit\.ly|tinyurl\.com|t\.co|goo\.gl|ow\.ly|buff\.ly|is\.gd|v\.gd|cutt\.ly|shorturl\.at|rb\.gy)\//i
+
+/** Hostitelé, u kterých nemáme spolehlivé auto-stažení (MEGA / Mediafire / shortener). */
+export function detectManualHost(source: string | null, url: string | null): ManualHost {
+  const src = (source || '').toLowerCase()
+  if (src.includes('mega')) return 'MEGA'
+  if (src.includes('mediafire')) return 'Mediafire'
+  if (!url) return null
+  if (/mega\.(nz|co\.nz|io)/i.test(url)) return 'MEGA'
+  if (/mediafire\.com/i.test(url)) return 'Mediafire'
+  if (SHORTENER_RE.test(url)) return 'Shortener'
+  return null
+}
+
+/**
+ * Lze píseň stáhnout automaticky (bez ruční interakce)? Používá batch download,
+ * aby nezařazoval oficiální DLC ani MEGA/Mediafire/shortener odkazy, které
+ * vyžadují ruční krok a jen by zaplavily frontu chybami.
+ */
+export function isAutoDownloadable(song: SongResult): boolean {
+  if (song.official) return false
+  const url = song.downloadUrl || song.downloadPageUrl
+  if (!url) return false
+  return detectManualHost(song.source, url) === null
+}
