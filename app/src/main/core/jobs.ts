@@ -179,7 +179,12 @@ class JobManager extends EventEmitter {
       const conFiles = findConFiles(workDir)
       let installSource = workDir
       if (conFiles.length > 0) {
-        this.setStage(id, 'converting', 'Converting via Onyx…', 0)
+        this.setStage(
+          id,
+          'converting',
+          'Converting Rock Band audio — this can take a few minutes…',
+          -1
+        )
         const convOut = join(tmpRoot, '_converted')
         mkdirSync(convOut, { recursive: true })
         let done = 0

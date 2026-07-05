@@ -52,6 +52,18 @@ export function anyNeedsConversion(formats: string[]): boolean {
   return formats.some(formatNeedsConversion)
 }
 
+/**
+ * PS3 Rock Band obsah (rb3ps3, rb2ps3, …) je šifrovaný přes EDAT
+ * (.mid_edat / .milo_ps3). Bez per-nákup RAP/klíčů vázaných na PSN účet ho
+ * NELZE dešifrovat ani zkonvertovat — Onyx ani nikdo jiný to bez klíčů neudělá.
+ * Xbox 360 CON verze téže písně je nešifrovaná a funguje, takže PS3 položky
+ * ve výsledcích jen matou → skrýváme je.
+ */
+export function isPs3Format(format: string | null | undefined): boolean {
+  if (!format) return false
+  return format.toLowerCase().includes('ps3')
+}
+
 /** Lidsky čitelný štítek formátu pro UI. */
 export function formatLabel(format: string | null | undefined): string {
   if (!format) return '?'

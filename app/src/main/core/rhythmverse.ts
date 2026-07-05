@@ -12,7 +12,12 @@
 // Pozn.: hodnota obtížnosti 0 nebo null znamená „part nezahraný"; 1–6 je tier.
 
 import type { InstrumentDifficulties, SearchResponse, SongResult } from '../../shared/types'
-import { anyNeedsConversion, formatNeedsConversion, parsePhpStringArray } from './gameformats'
+import {
+  anyNeedsConversion,
+  formatNeedsConversion,
+  isPs3Format,
+  parsePhpStringArray
+} from './gameformats'
 
 const BASE = 'https://rhythmverse.co'
 
@@ -165,7 +170,10 @@ export async function search(
   }
 
   const rawSongs: any[] = Array.isArray(json.data.songs) ? json.data.songs : []
-  const songs = rawSongs.map(normalizeSong)
+  // PS3 soubory (šifrované EDAT, nekonvertovatelné) vyřadíme — jen matou.
+  // Rozhoduje formát KONKRÉTNÍHO nabízeného souboru (f.gameformat), ne agregace
+  // přes všechny verze písně: pokud tenhle řádek stahuje PS3 soubor, skryj ho.
+  const songs = rawSongs.map(normalizeSong).filter((s) => !isPs3Format(s.gameFormat))
 
   return {
     songs,

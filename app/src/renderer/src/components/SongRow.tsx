@@ -76,6 +76,11 @@ function SongRowBase({
 }: Props): JSX.Element {
   const busy = job && job.stage !== 'done' && job.stage !== 'error'
   const pct = job && job.progress >= 0 ? Math.round(job.progress * 100) : null
+  // Procenta má smysl ukazovat jen u stahování (jediná fáze se skutečným
+  // progressem). Konverze/rozbalování/instalace nemají měřitelný postup —
+  // Onyx procenta nehlásí — takže tam ukážeme točící se spinner místo zamrzlého „0%".
+  const showPct = job?.stage === 'downloading' && pct !== null
+  const showSpin = busy && job?.stage !== 'downloading'
   const size = formatSize(song.sizeBytes)
   const initialHost = detectManualHost(song.source, song.downloadUrl || song.downloadPageUrl)
   const [manualHost, setManualHost] = useState<ManualHost>(initialHost)
@@ -150,9 +155,10 @@ function SongRowBase({
 
       <div className="song__action">
         {job ? (
-          <div className={`jobchip jobchip--${job.stage}`}>
+          <div className={`jobchip jobchip--${job.stage} ${busy ? 'jobchip--busy' : ''}`}>
+            {showSpin ? <span className="jobchip__spin" aria-hidden="true" /> : null}
             <span>{STAGE_LABEL[job.stage] ?? job.stage}</span>
-            {pct !== null && busy ? <span className="jobchip__pct">{pct}%</span> : null}
+            {showPct ? <span className="jobchip__pct">{pct}%</span> : null}
             {job.stage === 'error' ? (
               <span className="jobchip__err" title={job.error}>
                 ⚠
