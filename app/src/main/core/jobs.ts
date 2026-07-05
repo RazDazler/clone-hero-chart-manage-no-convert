@@ -19,16 +19,30 @@ import { convertCon, convertDtx } from './converter'
 import { install } from './library'
 import { extractSng, isSngFile } from './sngextract'
 
-/** Minimální SongResult pro dávkově dropnutý lokální vstup (název z cesty). */
+// Přípony, které z názvu odřízneme. NE obecné `.\w+$` — to by zmršilo názvy
+// složek s tečkou (např. „Mr. Big - To Be With You").
+const KNOWN_INPUT_EXT = /\.(zip|rar|7z|sng|rb3con|con|dtx|gda|chart|mid)$/i
+
+/**
+ * Minimální SongResult pro dávkově dropnutý lokální vstup. Název složky/souboru
+ * bývá „Artist - Title", takže ho podle „ - " rozdělíme — jinak by se u instalace
+ * poskládalo „Unknown artist - Artist - Title".
+ */
 function deriveLocalSong(path: string): SongResult {
-  const base = basename(path).replace(/\.[^.]+$/, '')
-  const title = base.replace(/[_.]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Unknown title'
+  const base = basename(path).replace(KNOWN_INPUT_EXT, '').trim()
+  let artist = 'Unknown artist'
+  let title = base || 'Unknown title'
+  const dash = base.indexOf(' - ')
+  if (dash > 0 && dash < base.length - 3) {
+    artist = base.slice(0, dash).trim() || 'Unknown artist'
+    title = base.slice(dash + 3).trim() || base
+  }
   return {
     key: `local:${path}`,
     fileId: null,
     songId: null,
     title,
-    artist: 'Unknown artist',
+    artist,
     album: '',
     year: null,
     genre: '',
