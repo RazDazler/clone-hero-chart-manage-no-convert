@@ -15,6 +15,7 @@ import { SortSelect } from './components/SortSelect'
 import { TargetFolderModal } from './components/TargetFolderModal'
 import { TitleBar } from './components/TitleBar'
 import { UpdateBanner } from './components/UpdateBanner'
+import { Discover } from './components/Discover'
 import { WhatsNew } from './components/WhatsNew'
 import { useStore } from './store'
 import { INSTRUMENTS, isAutoDownloadable, songKey } from './utils'
@@ -327,8 +328,11 @@ export function App(): JSX.Element {
           <div className="state state--empty">
             <img className="ch-logo" src={chLogoUrl} alt="" draggable={false} />
             <div className="state__msg">
-              {query ? 'Nothing found.' : 'Type a song or artist and press Search.'}
+              {query
+                ? 'Nothing found. Try a random pick or an artist below.'
+                : 'Search for a song or artist, or let it surprise you.'}
             </div>
+            <Discover />
           </div>
         ) : visible.length === 0 ? (
           <div className="state">No song matches the instrument filter.</div>

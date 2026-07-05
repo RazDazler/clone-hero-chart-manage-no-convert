@@ -1684,6 +1684,52 @@ body {
   color: var(--text-faint);
   letter-spacing: 0.3px;
 }
+
+/* Discovery v prázdném stavu — Surprise me + chipy populárních kapel. */
+.discover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+  z-index: 1; /* nad vodoznakem loga */
+}
+.discover__surprise {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.discover__hint {
+  font-size: 12px;
+  color: var(--text-faint);
+  letter-spacing: 0.2px;
+}
+.discover__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 620px;
+}
+.pickchip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease,
+    transform 0.1s ease;
+}
+.pickchip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--accent);
+  color: var(--text);
+  transform: translateY(-1px);
+}
 @keyframes chLogoIn {
   from {
     opacity: 0;

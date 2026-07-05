@@ -6,7 +6,7 @@ import type {
   RhythmVerseSystem,
   SongResult
 } from '../../shared/types'
-import { isAutoDownloadable } from './utils'
+import { isAutoDownloadable, SURPRISE_SEEDS } from './utils'
 
 export type SortKey = 'relevance' | 'title' | 'artist' | 'length'
 
@@ -91,6 +91,10 @@ interface AppState {
   /** Otevře „What's new". `since` = z jaké verze uživatel přišel (null/nezadáno = posledních N). */
   openWhatsNew: (since?: string | null) => void
   doSearch: (page?: number) => Promise<void>
+  /** „Surprise me" — náhodné seed slovo, náhodná stránka, zamíchané výsledky. */
+  surprise: () => Promise<void>
+  /** Spustí hledání konkrétního termínu (discovery chip). */
+  pickSearch: (term: string) => Promise<void>
   openDownload: (song: SongResult) => Promise<void>
   confirmDownload: (subfolder: string) => Promise<void>
   cancelDownload: () => void
@@ -285,6 +289,42 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (e) {
       set({ loading: false, error: e instanceof Error ? e.message : String(e) })
     }
+  },
+
+  surprise: async () => {
+    const { system, database, records } = get()
+    const seed = SURPRISE_SEEDS[Math.floor(Math.random() * SURPRISE_SEEDS.length)]
+    set({ query: seed, loading: true, error: null, selectedKeys: [] })
+    try {
+      // 1) první stránka → zjisti počet výsledků a spočítej rozsah stránek.
+      const first = await window.api.search(seed, 1, records, system, database)
+      const total = first.totalFiltered || first.songs.length
+      const totalPages = Math.max(1, Math.ceil(total / records))
+      // 2) náhodná stránka (cap ať offset není extrémní), pak zamíchej řádky.
+      const rndPage = 1 + Math.floor(Math.random() * Math.min(totalPages, 60))
+      const res =
+        rndPage === 1 ? first : await window.api.search(seed, rndPage, records, system, database)
+      const shuffled = [...res.songs]
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+      }
+      set({
+        results: shuffled,
+        totalFiltered: res.totalFiltered,
+        page: res.page,
+        loading: false,
+        selectedIndex: 0,
+        selectedKeys: []
+      })
+    } catch (e) {
+      set({ loading: false, error: e instanceof Error ? e.message : String(e) })
+    }
+  },
+
+  pickSearch: async (term) => {
+    set({ query: term })
+    await get().doSearch(1)
   },
 
   openDownload: async (song) => {
