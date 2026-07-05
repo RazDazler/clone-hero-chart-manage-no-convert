@@ -363,6 +363,7 @@ export const useStore = create<AppState>((set, get) => ({
       lengthSeconds: null,
       albumArtUrl: null,
       difficulties: {},
+      expertOnly: null,
       charter: null,
       source: 'Local file',
       gameFormat: null,

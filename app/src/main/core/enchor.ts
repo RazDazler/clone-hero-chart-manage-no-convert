@@ -88,6 +88,8 @@ function normalize(c: EnchorChart): SongResult {
     lengthSeconds: lenMs != null ? Math.round(lenMs / 1000) : null,
     albumArtUrl: artMd5 ? `${FILES}/${artMd5}.jpg` : null,
     difficulties: mapDifficulties(c),
+    // Chorus Encore nehlásí spolehlivě dostupné obtížnosti → neznámé.
+    expertOnly: null,
     charter: c.charter ?? null,
     source: 'Chorus Encore',
     gameFormat: 'sng',

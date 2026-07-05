@@ -31,6 +31,13 @@ export interface SongResult {
   /** Absolutní URL na obal alba, nebo null. */
   albumArtUrl: string | null
   difficulties: InstrumentDifficulties
+  /**
+   * Je chart jen na Expert (bez nižších obtížností)?
+   * - true  = pouze Expert (žádné E/M/H reductions)
+   * - false = má E/M/H/X
+   * - null  = neznámé (zdroj to nehlásí, např. Chorus Encore)
+   */
+  expertOnly: boolean | null
   charter: string | null
   /** Hostitel souboru (např. Google Drive, Mediafire). */
   source: string | null

@@ -66,6 +66,29 @@ function mapDifficulties(
   }
 }
 
+/**
+ * Odvodí z RhythmVerse pole `file.difficulties` (per nástroj `{e,m,h,x,all}`),
+ * jestli je chart jen na Expert. `has_reductions` je nespolehlivé (yes/automatic/
+ * ""/no), zato tenhle objekt je vždy přítomný a přesný.
+ *   - true  = žádný nacharovaný nástroj nemá E/M/H (jen Expert)
+ *   - false = aspoň jeden nástroj má nižší obtížnost
+ *   - null  = objekt chybí / nic nenacharováno
+ */
+function computeExpertOnly(diffs: unknown): boolean | null {
+  if (!diffs || typeof diffs !== 'object') return null
+  let anyCharted = false
+  let anyReduction = false
+  for (const inst of Object.values(diffs as Record<string, Record<string, number>>)) {
+    if (!inst || typeof inst !== 'object') continue
+    const charted =
+      inst.x === 1 || inst.all === 1 || inst.h === 1 || inst.m === 1 || inst.e === 1
+    if (charted) anyCharted = true
+    if (inst.e === 1 || inst.m === 1 || inst.h === 1) anyReduction = true
+  }
+  if (!anyCharted) return null
+  return !anyReduction
+}
+
 function absolutize(url: string | null | undefined): string | null {
   if (!url) return null
   if (/^https?:\/\//i.test(url)) return url
@@ -119,6 +142,7 @@ function normalizeSong(song: { data: Record<string, unknown>; file: Record<strin
     lengthSeconds: num(d.song_length ?? f.file_song_length),
     albumArtUrl: pickArt(d, f),
     difficulties: mapDifficulties(f, d),
+    expertOnly: computeExpertOnly(f.difficulties),
     charter: pickCharter(f),
     source: (f.gamesource as string) || (f.source as string) || null,
     gameFormat,

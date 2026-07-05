@@ -153,6 +153,21 @@ function SongRowBase({
               {song.needsConversion ? ' → CH' : ''}
             </span>
           )}
+          {song.expertOnly === true ? (
+            <span
+              className="badge badge--expert"
+              title="This chart only has an Expert difficulty (no Easy / Medium / Hard)"
+            >
+              Expert only
+            </span>
+          ) : song.expertOnly === false ? (
+            <span
+              className="badge badge--alldiffs"
+              title="This chart has Easy, Medium, Hard and Expert"
+            >
+              E/M/H/X
+            </span>
+          ) : null}
           {song.charter ? (
             <span className="song__charter">
               <Icon name="charter" size={12} /> {song.charter}
