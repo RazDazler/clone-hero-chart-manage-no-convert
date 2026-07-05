@@ -271,7 +271,10 @@ export const useStore = create<AppState>((set, get) => ({
 
   doSearch: async (page = 1) => {
     const { query, system, database, records } = get()
-    if (!query.trim()) {
+    // Prázdný dotaz normálně nic nehledá. Výjimka: Chorus Encore umí „browse all"
+    // (prázdný dotaz vrátí celou databázi), takže u něj prázdné hledání pustíme —
+    // díky tomu funguje i stránkování po „Surprise me" na Encore.
+    if (!query.trim() && database !== 'enchor') {
       set({ results: [], totalFiltered: 0, error: null })
       return
     }
@@ -293,17 +296,23 @@ export const useStore = create<AppState>((set, get) => ({
 
   surprise: async () => {
     const { system, database, records } = get()
-    const seed = SURPRISE_SEEDS[Math.floor(Math.random() * SURPRISE_SEEDS.length)]
+    // Chorus Encore umí „browse all" přes prázdný dotaz → opravdový náhodný výběr
+    // z celé databáze. RhythmVerse prázdný dotaz odmítá, a v „both" by RV část
+    // vypadla, proto tam použijeme náhodné seed slovo z poolu.
+    const seed =
+      database === 'enchor' ? '' : SURPRISE_SEEDS[Math.floor(Math.random() * SURPRISE_SEEDS.length)]
     set({ query: seed, loading: true, error: null, selectedKeys: [] })
     try {
       // 1) první stránka → zjisti počet výsledků a spočítej rozsah stránek.
       const first = await window.api.search(seed, 1, records, system, database)
       const total = first.totalFiltered || first.songs.length
       const totalPages = Math.max(1, Math.ceil(total / records))
-      // 2) náhodná stránka (cap ať offset není extrémní), pak zamíchej řádky.
-      const rndPage = 1 + Math.floor(Math.random() * Math.min(totalPages, 60))
-      const res =
+      // 2) náhodná stránka (cap ať offset není extrémní ani u velkých katalogů),
+      //    pak zamíchej řádky. Když krajní stránka vyjde prázdná, vrať se na první.
+      const rndPage = 1 + Math.floor(Math.random() * Math.min(totalPages, 400))
+      let res =
         rndPage === 1 ? first : await window.api.search(seed, rndPage, records, system, database)
+      if (res.songs.length === 0) res = first
       const shuffled = [...res.songs]
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
