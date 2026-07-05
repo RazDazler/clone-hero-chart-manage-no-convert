@@ -22,28 +22,37 @@ export function FilterBar(): JSX.Element {
 
   const diffActive = filters.length > 0
   const openLocalDrop = useStore((s) => s.openLocalDrop)
+  const openLocalBatch = useStore((s) => s.openLocalBatch)
   const [dragOver, setDragOver] = useState(false)
 
   const handleDrop = (e: React.DragEvent<HTMLElement>): void => {
     e.preventDefault()
     setDragOver(false)
-    const file = e.dataTransfer.files?.[0]
-    if (!file) return
-    // Kontrola jen pokud má přípona je SOUBOR vůbec MÁ a není v allowlistu.
-    // Bez přípony pouštíme — backend si detekuje formát podle magic bytů.
-    const hasExt = /\.[a-z0-9]{1,8}$/i.test(file.name)
-    if (hasExt && !ACCEPTED_EXT.test(file.name)) {
-      window.alert(
-        `Unsupported file: "${file.name}". Drop a .zip / .rar / .7z / .sng / .rb3con / CON file (or a CON file without extension).`
-      )
+    const files = Array.from(e.dataTransfer.files || [])
+    if (files.length === 0) return
+    const paths = files
+      .map((f) => window.api.getDroppedFilePath(f))
+      .filter((p): p is string => !!p)
+    if (paths.length === 0) {
+      window.alert('Could not read the file paths. Try again, or use the click-to-browse option.')
       return
     }
-    const path = window.api.getDroppedFilePath(file)
-    if (!path) {
-      window.alert('Could not read the file path. Try again, or use the click-to-browse option.')
+
+    // Jediný soubor s příponou → modal s potvrzením metadat (nejlepší UX).
+    // Víc položek nebo složka → hromadná dávka (metadata z názvů, jeden výběr cíle).
+    const single = files[0]
+    const singleHasExt = /\.[a-z0-9]{1,8}$/i.test(single.name)
+    if (paths.length === 1 && singleHasExt) {
+      if (!ACCEPTED_EXT.test(single.name)) {
+        window.alert(
+          `Unsupported file: "${single.name}". Drop a .zip / .rar / .7z / .sng / .rb3con / CON file, multiple files, or a folder.`
+        )
+        return
+      }
+      void openLocalDrop(paths[0], single.name)
       return
     }
-    void openLocalDrop(path, file.name)
+    void openLocalBatch(paths)
   }
 
   return (
@@ -132,8 +141,8 @@ export function FilterBar(): JSX.Element {
       >
         <Icon name="download" size={18} />
         <div className="dropzone__text">
-          <strong>Drop a file or click to browse</strong>
-          <span>.zip · .rar · .7z · .sng · .rb3con</span>
+          <strong>Drop files or a folder, or click to browse</strong>
+          <span>.zip · .rar · .7z · .sng · .rb3con · CON · DTX</span>
         </div>
       </button>
     </div>

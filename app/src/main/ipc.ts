@@ -89,6 +89,11 @@ export function registerIpc(): void {
     (_e, localPath: string, song: SongResult, targetSubfolder?: string) =>
       jobManager.enqueueLocal(localPath, song, targetSubfolder)
   )
+  ipcMain.handle(
+    'jobs:enqueueLocalBatch',
+    (_e, paths: string[], targetSubfolder?: string) =>
+      jobManager.enqueueLocalBatch(paths, targetSubfolder)
+  )
   ipcMain.handle('jobs:getAll', () => jobManager.getAll())
   ipcMain.handle('jobs:clearFinished', () => jobManager.clearFinished())
   ipcMain.handle('library:listFolders', () => listSongFolders())

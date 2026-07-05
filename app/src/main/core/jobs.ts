@@ -8,10 +8,46 @@ import { randomUUID } from 'crypto'
 import type { DownloadJob, JobStage, SongResult } from '../../shared/types'
 import { downloadDriveFolder, downloadTo, guessFileName, isDriveFolder } from './download'
 import { extract } from './extractor'
-import { findConFiles, findDtxEntries, isArchiveByMagic, isHtmlFile } from './filetype'
+import {
+  findArchiveFiles,
+  findConFiles,
+  findDtxEntries,
+  isArchiveByMagic,
+  isHtmlFile
+} from './filetype'
 import { convertCon, convertDtx } from './converter'
 import { install } from './library'
 import { extractSng, isSngFile } from './sngextract'
+
+/** Minimální SongResult pro dávkově dropnutý lokální vstup (název z cesty). */
+function deriveLocalSong(path: string): SongResult {
+  const base = basename(path).replace(/\.[^.]+$/, '')
+  const title = base.replace(/[_.]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Unknown title'
+  return {
+    key: `local:${path}`,
+    fileId: null,
+    songId: null,
+    title,
+    artist: 'Unknown artist',
+    album: '',
+    year: null,
+    genre: '',
+    lengthSeconds: null,
+    albumArtUrl: null,
+    difficulties: {},
+    expertOnly: null,
+    charter: null,
+    source: 'Local file',
+    gameFormat: null,
+    gameFormats: [],
+    needsConversion: false,
+    official: false,
+    downloadUrl: null,
+    downloadPageUrl: null,
+    externalUrl: null,
+    sizeBytes: null
+  }
+}
 
 class JobManager extends EventEmitter {
   private jobs = new Map<string, DownloadJob>()
@@ -70,6 +106,33 @@ class JobManager extends EventEmitter {
     return id
   }
 
+  /**
+   * Hromadné zařazení dropnutých souborů/složek. Každý vstup se „rozbalí":
+   *   - soubor → sám sebou,
+   *   - složka s archivy → každý archiv zvlášť,
+   *   - složka bez archivů → celá složka (obsahuje volné písně / DTX / CON / .sng).
+   * Metadata se odvodí z názvu; cílová podsložka je společná pro celou dávku.
+   */
+  enqueueLocalBatch(paths: string[], targetSubfolder?: string): string[] {
+    const inputs: string[] = []
+    for (const p of paths) {
+      let st
+      try {
+        st = statSync(p)
+      } catch {
+        continue
+      }
+      if (st.isDirectory()) {
+        const archives = findArchiveFiles(p)
+        if (archives.length > 0) inputs.push(...archives)
+        else inputs.push(p)
+      } else if (st.isFile()) {
+        inputs.push(p)
+      }
+    }
+    return inputs.map((input) => this.enqueueLocal(input, deriveLocalSong(input), targetSubfolder))
+  }
+
   private update(id: string, patch: Partial<DownloadJob>): void {
     const job = this.jobs.get(id)
     if (!job) return
@@ -111,21 +174,27 @@ class JobManager extends EventEmitter {
       let workDir = tmpRoot
       if (url.startsWith('local-file://')) {
         const localPath = url.slice('local-file://'.length)
-        if (!existsSync(localPath) || !statSync(localPath).isFile()) {
+        if (!existsSync(localPath)) {
           throw new Error(`Local file no longer exists: ${localPath}`)
         }
-        const downloadPath = join(tmpRoot, basename(localPath))
-        copyFileSync(localPath, downloadPath)
+        if (statSync(localPath).isDirectory()) {
+          // Dropnutá složka → zpracuj ji na místě (jen z ní čteme, install kopíruje
+          // ven). findCon/findDtx/install si v ní najdou písně samy.
+          workDir = localPath
+        } else {
+          const downloadPath = join(tmpRoot, basename(localPath))
+          copyFileSync(localPath, downloadPath)
 
-        // Pokračuj stejnou cestou jako u stažených souborů.
-        if (isArchiveByMagic(downloadPath)) {
-          this.setStage(id, 'extracting', 'Extracting…')
-          const exDir = join(tmpRoot, '_extracted')
-          mkdirSync(exDir, { recursive: true })
-          await extract(downloadPath, exDir)
-          workDir = exDir
-        } else if (isHtmlFile(downloadPath)) {
-          throw new Error('Dropped file looks like a web page, not a song.')
+          // Pokračuj stejnou cestou jako u stažených souborů.
+          if (isArchiveByMagic(downloadPath)) {
+            this.setStage(id, 'extracting', 'Extracting…')
+            const exDir = join(tmpRoot, '_extracted')
+            mkdirSync(exDir, { recursive: true })
+            await extract(downloadPath, exDir)
+            workDir = exDir
+          } else if (isHtmlFile(downloadPath)) {
+            throw new Error('Dropped file looks like a web page, not a song.')
+          }
         }
       } else if (isDriveFolder(url)) {
         // Google Drive složka → stáhnout všechny soubory přímo do složky.

@@ -48,6 +48,8 @@ interface AppState {
   // Multi-select (hromadné stažení) — klíče vybraných písní + čekající dávka.
   selectedKeys: string[]
   pendingBatch: SongResult[] | null
+  // Hromadný lokální drop (víc souborů / složka) — čeká na výběr cílové složky.
+  pendingLocalBatch: string[] | null
 
   // Klíč aktuálně otevřeného ⋮ menu (jen jedno najednou).
   openRowMenu: string | null
@@ -81,6 +83,10 @@ interface AppState {
   openBatchDownload: (songs: SongResult[]) => Promise<void>
   confirmBatchDownload: (subfolder: string) => Promise<void>
   cancelBatchDownload: () => void
+  // Hromadný lokální drop
+  openLocalBatch: (paths: string[]) => Promise<void>
+  confirmLocalBatch: (subfolder: string) => Promise<void>
+  cancelLocalBatch: () => void
   openMarketplace: (song: SongResult) => void
   closeMarketplace: () => void
   setOpenRowMenu: (key: string | null) => void
@@ -182,6 +188,7 @@ export const useStore = create<AppState>((set, get) => ({
   lastSubfolder: '',
   selectedKeys: [],
   pendingBatch: null,
+  pendingLocalBatch: null,
   openRowMenu: null,
   pendingLocal: null,
 
@@ -295,6 +302,31 @@ export const useStore = create<AppState>((set, get) => ({
     }))
   },
   cancelBatchDownload: () => set({ pendingBatch: null }),
+
+  // ---- Hromadný lokální drop ----
+  openLocalBatch: async (paths) => {
+    if (paths.length === 0) return
+    set({ pendingLocalBatch: paths, foldersLoading: true })
+    try {
+      const folders = await window.api.listSongFolders()
+      set({ folders, foldersLoading: false })
+    } catch {
+      set({ folders: [], foldersLoading: false })
+    }
+  },
+  confirmLocalBatch: async (subfolder) => {
+    const paths = get().pendingLocalBatch
+    if (!paths) return
+    const ids = await window.api.enqueueLocalBatch(paths, subfolder || undefined)
+    set((s) => {
+      const enqueuedKeys = { ...s.enqueuedKeys }
+      ids.forEach((id, i) => {
+        enqueuedKeys[`localbatch:${id}:${i}`] = id
+      })
+      return { enqueuedKeys, pendingLocalBatch: null, lastSubfolder: subfolder }
+    })
+  },
+  cancelLocalBatch: () => set({ pendingLocalBatch: null }),
 
   openMarketplace: (song) => set({ marketplacePrompt: song }),
   closeMarketplace: () => set({ marketplacePrompt: null }),

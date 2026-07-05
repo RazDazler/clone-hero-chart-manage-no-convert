@@ -103,6 +103,33 @@ export function findConFiles(root: string, maxDepth = 6): string[] {
   return out
 }
 
+/** Najde všechny archivy (zip/rar/7z/gzip podle magic) v adresářovém stromu. */
+export function findArchiveFiles(root: string, maxDepth = 8): string[] {
+  const out: string[] = []
+  const walk = (dir: string, depth: number): void => {
+    if (depth > maxDepth) return
+    let entries: string[]
+    try {
+      entries = readdirSync(dir)
+    } catch {
+      return
+    }
+    for (const name of entries) {
+      const full = join(dir, name)
+      let st
+      try {
+        st = statSync(full)
+      } catch {
+        continue
+      }
+      if (st.isDirectory()) walk(full, depth + 1)
+      else if (st.isFile() && st.size > 0 && isArchiveByMagic(full)) out.push(full)
+    }
+  }
+  walk(root, 0)
+  return out
+}
+
 /**
  * Najde vstupní body pro DTXMania konverzi ve stromu.
  * - Preferuje `set.def` (import celé sady = Expert + autogen nižší obtížnosti);

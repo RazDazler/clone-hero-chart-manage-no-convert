@@ -157,6 +157,8 @@ export interface RendererApi {
     song: SongResult,
     targetSubfolder?: string
   ): Promise<string>
+  /** Hromadně zařadí dropnuté soubory/složky (metadata z názvů). */
+  enqueueLocalBatch(paths: string[], targetSubfolder?: string): Promise<string[]>
   /** Vrátí názvy přímých podsložek v knihovně Songs. */
   listSongFolders(): Promise<string[]>
   // Správce knihovny

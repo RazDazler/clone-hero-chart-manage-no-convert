@@ -5,6 +5,7 @@ import { Icon } from './Icon'
 export function TargetFolderModal(): JSX.Element | null {
   const pendingSong = useStore((s) => s.pendingSong)
   const pendingBatch = useStore((s) => s.pendingBatch)
+  const pendingLocalBatch = useStore((s) => s.pendingLocalBatch)
   const folders = useStore((s) => s.folders)
   const foldersLoading = useStore((s) => s.foldersLoading)
   const lastSubfolder = useStore((s) => s.lastSubfolder)
@@ -12,9 +13,12 @@ export function TargetFolderModal(): JSX.Element | null {
   const cancelDownload = useStore((s) => s.cancelDownload)
   const confirmBatchDownload = useStore((s) => s.confirmBatchDownload)
   const cancelBatchDownload = useStore((s) => s.cancelBatchDownload)
+  const confirmLocalBatch = useStore((s) => s.confirmLocalBatch)
+  const cancelLocalBatch = useStore((s) => s.cancelLocalBatch)
 
-  const isBatch = pendingBatch !== null
-  const batchCount = pendingBatch?.length ?? 0
+  const isLocalBatch = pendingLocalBatch !== null
+  const isBatch = pendingBatch !== null || isLocalBatch
+  const batchCount = pendingBatch?.length ?? pendingLocalBatch?.length ?? 0
 
   const [selected, setSelected] = useState<string>(lastSubfolder)
   const [newFolder, setNewFolder] = useState('')
@@ -23,26 +27,33 @@ export function TargetFolderModal(): JSX.Element | null {
 
   // Reset při otevření (pro píseň i pro dávku).
   useEffect(() => {
-    if (pendingSong || pendingBatch) {
+    if (pendingSong || pendingBatch || pendingLocalBatch) {
       setSelected(lastSubfolder)
       setNewFolder('')
       setFilter('')
     }
-  }, [pendingSong, pendingBatch, lastSubfolder])
+  }, [pendingSong, pendingBatch, pendingLocalBatch, lastSubfolder])
 
   const filtered = useMemo(
     () => folders.filter((f) => f.toLowerCase().includes(filter.toLowerCase())),
     [folders, filter]
   )
 
-  if (!pendingSong && !pendingBatch) return null
+  if (!pendingSong && !pendingBatch && !pendingLocalBatch) return null
 
   // Cíl: nová složka má přednost, jinak vybraná (prázdné = kořen Songs).
   const target = newFolder.trim() || selected
 
-  const cancel = (): void => (isBatch ? cancelBatchDownload() : cancelDownload())
-  const confirm = (): void =>
-    void (isBatch ? confirmBatchDownload(target) : confirmDownload(target))
+  const cancel = (): void => {
+    if (isLocalBatch) cancelLocalBatch()
+    else if (pendingBatch) cancelBatchDownload()
+    else cancelDownload()
+  }
+  const confirm = (): void => {
+    if (isLocalBatch) void confirmLocalBatch(target)
+    else if (pendingBatch) void confirmBatchDownload(target)
+    else void confirmDownload(target)
+  }
 
   return (
     <div
@@ -72,7 +83,11 @@ export function TargetFolderModal(): JSX.Element | null {
 
         <div className="modal__body">
           <div className="folder-song">
-            {isBatch ? (
+            {isLocalBatch ? (
+              <strong>
+                {batchCount} {batchCount === 1 ? 'item' : 'items'} dropped
+              </strong>
+            ) : isBatch ? (
               <strong>
                 {batchCount} {batchCount === 1 ? 'song' : 'songs'} selected
               </strong>
@@ -117,7 +132,9 @@ export function TargetFolderModal(): JSX.Element | null {
                   onDoubleClick={() => {
                     setSelected(f)
                     setNewFolder('')
-                    void (isBatch ? confirmBatchDownload(f) : confirmDownload(f))
+                    if (isLocalBatch) void confirmLocalBatch(f)
+                    else if (pendingBatch) void confirmBatchDownload(f)
+                    else void confirmDownload(f)
                   }}
                 >
                   <Icon name="folder" size={15} /> {f}

@@ -28,6 +28,9 @@ const api = {
   enqueueLocalFile: (localPath: string, song: SongResult, targetSubfolder?: string) =>
     ipcRenderer.invoke('jobs:enqueueLocal', localPath, song, targetSubfolder) as Promise<string>,
 
+  enqueueLocalBatch: (paths: string[], targetSubfolder?: string) =>
+    ipcRenderer.invoke('jobs:enqueueLocalBatch', paths, targetSubfolder) as Promise<string[]>,
+
   listSongFolders: () => ipcRenderer.invoke('library:listFolders') as Promise<string[]>,
 
   libList: (rel: string) => ipcRenderer.invoke('lib:list', rel) as Promise<LibListing>,

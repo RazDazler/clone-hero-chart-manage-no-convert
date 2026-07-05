@@ -134,6 +134,7 @@ export function App(): JSX.Element {
       // Když je otevřený modal výběru složky, klávesy řeší samotný modal.
       if (useStore.getState().pendingSong) return
       if (useStore.getState().pendingBatch) return
+      if (useStore.getState().pendingLocalBatch) return
       if (useStore.getState().pendingLocal) return
       // Dotaz na obchod (oficiální DLC): jen Escape zavře.
       if (useStore.getState().marketplacePrompt) {
