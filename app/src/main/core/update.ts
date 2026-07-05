@@ -7,7 +7,7 @@
 import { app } from 'electron'
 import type { UpdateInfo } from '../../shared/types'
 
-const REPO = 'ZIPEEK/clone-hero-chart-manager'
+const REPO = 'xlzipx/clone-hero-chart-manager'
 const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`
 
 /** "v0.2.4" | "0.2.4" → [0, 2, 4]. Nečíselné části se ignorují. */
