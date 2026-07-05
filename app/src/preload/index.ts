@@ -10,7 +10,8 @@ import type {
   RhythmVerseSystem,
   SearchResponse,
   SongResult,
-  UpdateAvailable
+  UpdateAvailable,
+  UpdateCheckResult
 } from '../shared/types'
 
 const api = {
@@ -146,8 +147,11 @@ const api = {
   },
 
   appVersion: () => ipcRenderer.invoke('app:version') as Promise<string>,
+  checkForUpdates: () => ipcRenderer.invoke('update:check') as Promise<UpdateCheckResult>,
   getReleaseNotes: (version?: string) =>
-    ipcRenderer.invoke('app:releaseNotes', version) as Promise<ReleaseNotes | null>
+    ipcRenderer.invoke('app:releaseNotes', version) as Promise<ReleaseNotes | null>,
+  getReleaseNotesSince: (since?: string, max?: number) =>
+    ipcRenderer.invoke('app:releaseNotesSince', since, max) as Promise<ReleaseNotes[]>
 }
 
 contextBridge.exposeInMainWorld('api', api)

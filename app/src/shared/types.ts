@@ -141,12 +141,24 @@ export interface UpdateAvailable {
   url?: string
 }
 
+/** Výsledek ruční kontroly aktualizací (tlačítko „Check for updates"). */
+export interface UpdateCheckResult {
+  /** available = je novější verze, uptodate = máš poslední, error = nešlo zkontrolovat. */
+  status: 'available' | 'uptodate' | 'error'
+  /** Verze — u `available` ta nová, u `uptodate` aktuální. */
+  version?: string
+  canAutoUpdate?: boolean
+  url?: string
+}
+
 export interface ReleaseNotes {
   version: string
   name: string
   /** Markdown tělo poznámek k vydání z GitHubu. */
   body: string
   url: string
+  /** ISO datum vydání (published_at) — pro zobrazení u víceverzového changelogu. */
+  date?: string
 }
 
 /** API vystavené do renderer procesu přes contextBridge (window.api). */
@@ -230,6 +242,13 @@ export interface RendererApi {
   onUpdateDownloaded(cb: (info: { version: string }) => void): () => void
   /** Aktuální verze aplikace. */
   appVersion(): Promise<string>
+  /** Ruční kontrola aktualizací (bez restartu). U instalační verze vyvolá i update banner. */
+  checkForUpdates(): Promise<UpdateCheckResult>
   /** Poznámky k vydání dané (nebo aktuální) verze z GitHubu. */
   getReleaseNotes(version?: string): Promise<ReleaseNotes | null>
+  /**
+   * Poznámky k více vydáním. Se `since` vrátí vše novější než ta verze (co
+   * uživatel od svého updatu minul), jinak posledních `max` vydání.
+   */
+  getReleaseNotesSince(since?: string, max?: number): Promise<ReleaseNotes[]>
 }

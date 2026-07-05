@@ -11,9 +11,10 @@
 //           → quitAndInstall()
 //     err → fallback: ruční GitHub API check → UI „View release" (manuální)
 
-import { ipcMain, type BrowserWindow } from 'electron'
+import { app, ipcMain, type BrowserWindow } from 'electron'
 import updaterPkg from 'electron-updater'
-import { checkForUpdate } from './update'
+import { checkForUpdate, isNewer } from './update'
+import type { UpdateCheckResult } from '../../shared/types'
 
 const { autoUpdater } = updaterPkg
 
@@ -65,6 +66,34 @@ export function initAutoUpdate(getWin: () => BrowserWindow | null): void {
   })
   ipcMain.handle('update:install', () => {
     autoUpdater.quitAndInstall()
+  })
+
+  // Ruční kontrola (tlačítko v Nastavení) — bez restartu, s definitivním výsledkem.
+  ipcMain.handle('update:check', async (): Promise<UpdateCheckResult> => {
+    const current = app.getVersion()
+    // Instalační (NSIS) build: electron-updater. Když je novější verze, vyvolá
+    // i 'update-available' event → banner s tlačítkem Download. V dev/portable
+    // to hodí chybu → spadneme na přímý GitHub API check níž.
+    try {
+      const r = await autoUpdater.checkForUpdates()
+      const latest = r?.updateInfo?.version
+      if (latest) {
+        if (isNewer(latest, current)) {
+          return { status: 'available', version: latest, canAutoUpdate: true }
+        }
+        return { status: 'uptodate', version: current }
+      }
+    } catch {
+      /* fallback níž */
+    }
+    // Portable / dev: přímý GitHub API check + ruční banner (View release).
+    const info = await checkForUpdate()
+    if (!info) return { status: 'error' }
+    if (info.hasUpdate) {
+      send('update:available', { version: info.latest, canAutoUpdate: false, url: info.url })
+      return { status: 'available', version: info.latest, canAutoUpdate: false, url: info.url }
+    }
+    return { status: 'uptodate', version: info.current }
   })
 
   // Kontrola po startu. Chyby (nepackovaný build, portable, offline) jdou do

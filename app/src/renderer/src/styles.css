@@ -473,6 +473,80 @@ body {
   color: var(--text-faint);
 }
 
+/* Víceverzový changelog — jedna sekce na vydání, oddělené linkou. */
+.wn__rel + .wn__rel {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.wn__relhead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 2px;
+}
+.wn__ver {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+.wn__date {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+/* První nadpis uvnitř sekce nemá odsazovat od hlavičky verze. */
+.wn__rel .wn__h:first-of-type {
+  margin-top: 8px;
+}
+
+/* ---------- Settings: sekce Updates ---------- */
+.about {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.about__ver {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.about__ver strong {
+  color: var(--text);
+  font-weight: 700;
+}
+.about__btn {
+  flex-shrink: 0;
+}
+.about__result {
+  margin-top: 8px;
+}
+.about__result--uptodate {
+  color: var(--ok);
+}
+.about__result--available {
+  color: var(--text);
+}
+.about__result--error {
+  color: var(--warn);
+}
+/* Odkazové tlačítko (View release) uvnitř textu. */
+.linkbtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.linkbtn:hover {
+  color: var(--text);
+}
+
 /* ---------- Update banner ---------- */
 .updatebar {
   display: flex;

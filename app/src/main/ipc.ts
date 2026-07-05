@@ -26,7 +26,7 @@ import {
   libTrash
 } from './core/librarymgr'
 import { search as searchRhythmverse } from './core/rhythmverse'
-import { getReleaseNotes } from './core/update'
+import { getReleaseNotes, getReleaseNotesSince } from './core/update'
 import { registerHotkeys, unregisterHotkeys } from './hotkeys'
 import { getOverlay, hideOverlay } from './overlay'
 
@@ -189,6 +189,9 @@ export function registerIpc(): void {
   })
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:releaseNotes', (_e, version?: string) => getReleaseNotes(version))
+  ipcMain.handle('app:releaseNotesSince', (_e, since?: string, max?: number) =>
+    getReleaseNotesSince(since, max)
+  )
 
   // Přeposílání průběhu úloh do renderer procesu.
   jobManager.on('update', (job) => {

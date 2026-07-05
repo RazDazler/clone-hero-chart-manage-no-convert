@@ -28,6 +28,8 @@ interface AppState {
   showSettings: boolean
   showLibrary: boolean
   showWhatsNew: boolean
+  /** Verze, ze které uživatel updatoval — changelog pak ukáže vše novější. null = ruční otevření (posledních N). */
+  whatsNewSince: string | null
 
   // Filtr podle nástroje (id nástroje, který musí být zahraný)
   instrumentFilters: string[]
@@ -86,6 +88,8 @@ interface AppState {
   setShowSettings: (v: boolean) => void
   setShowLibrary: (v: boolean) => void
   setShowWhatsNew: (v: boolean) => void
+  /** Otevře „What's new". `since` = z jaké verze uživatel přišel (null/nezadáno = posledních N). */
+  openWhatsNew: (since?: string | null) => void
   doSearch: (page?: number) => Promise<void>
   openDownload: (song: SongResult) => Promise<void>
   confirmDownload: (subfolder: string) => Promise<void>
@@ -195,6 +199,7 @@ export const useStore = create<AppState>((set, get) => ({
   showSettings: false,
   showLibrary: false,
   showWhatsNew: false,
+  whatsNewSince: null,
   instrumentFilters: [],
   diffMin: 0,
   diffMax: 6,
@@ -258,6 +263,7 @@ export const useStore = create<AppState>((set, get) => ({
   setShowSettings: (v) => set({ showSettings: v }),
   setShowLibrary: (v) => set({ showLibrary: v }),
   setShowWhatsNew: (v) => set({ showWhatsNew: v }),
+  openWhatsNew: (since) => set({ showWhatsNew: true, whatsNewSince: since ?? null }),
 
   doSearch: async (page = 1) => {
     const { query, system, database, records } = get()

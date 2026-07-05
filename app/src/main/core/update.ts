@@ -31,6 +31,51 @@ export async function getReleaseNotes(version?: string): Promise<ReleaseNotes | 
   }
 }
 
+/**
+ * Poznámky k VÍCE vydáním najednou. Když je zadán `sinceVersion`, vrátí všechny
+ * releasy novější než ta verze — tj. souhrn všeho, co uživatel od svého updatu
+ * minul (dynamicky podle toho, z jaké verze přichází). Bez `sinceVersion` vrátí
+ * posledních `max` vydání. Vždy nejnovější první, ořezáno na `max`.
+ */
+export async function getReleaseNotesSince(
+  sinceVersion?: string,
+  max = 8
+): Promise<ReleaseNotes[]> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`, {
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': `CHM/${app.getVersion()}` }
+    })
+    if (!res.ok) return []
+    const arr = (await res.json()) as Array<{
+      tag_name?: string
+      name?: string
+      body?: string
+      html_url?: string
+      draft?: boolean
+      prerelease?: boolean
+      published_at?: string
+    }>
+    const notes: ReleaseNotes[] = arr
+      .filter((r) => !!r.tag_name && !r.draft && !r.prerelease)
+      .map((r) => {
+        const version = (r.tag_name as string).replace(/^v/i, '')
+        return {
+          version,
+          name: r.name || `v${version}`,
+          body: r.body || '',
+          url: r.html_url || `https://github.com/${REPO}/releases/tag/${r.tag_name}`,
+          date: r.published_at
+        }
+      })
+    // Pro jistotu seřaď podle verze (nejnovější první) — verze jsou unikátní.
+    notes.sort((a, b) => (isNewer(a.version, b.version) ? -1 : 1))
+    const filtered = sinceVersion ? notes.filter((n) => isNewer(n.version, sinceVersion)) : notes
+    return filtered.slice(0, max)
+  } catch {
+    return []
+  }
+}
+
 /** "v0.2.4" | "0.2.4" → [0, 2, 4]. Nečíselné části se ignorují. */
 function parseVersion(v: string): number[] {
   return v

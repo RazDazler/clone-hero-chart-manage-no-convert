@@ -68,21 +68,32 @@ function renderNotes(body: string): JSX.Element[] {
   return out
 }
 
+/** ISO datum → „Jul 6, 2026" (nebo prázdné, když se nepodaří naparsovat). */
+function fmtDate(iso?: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 export function WhatsNew(): JSX.Element | null {
   const show = useStore((s) => s.showWhatsNew)
+  const since = useStore((s) => s.whatsNewSince)
   const setShow = useStore((s) => s.setShowWhatsNew)
-  const [notes, setNotes] = useState<ReleaseNotes | null>(null)
+  const [releases, setReleases] = useState<ReleaseNotes[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!show) return
     setLoading(true)
-    setNotes(null)
+    setReleases([])
     let cancelled = false
+    // Po updatu (since != null): vše novější než minulá verze, max 8.
+    // Ruční otevření (since == null): poslední 3 vydání.
     void window.api
-      .getReleaseNotes()
-      .then((n) => {
-        if (!cancelled) setNotes(n)
+      .getReleaseNotesSince(since ?? undefined, since ? 8 : 3)
+      .then((list) => {
+        if (!cancelled) setReleases(list)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -90,9 +101,14 @@ export function WhatsNew(): JSX.Element | null {
     return () => {
       cancelled = true
     }
-  }, [show])
+  }, [show, since])
 
   if (!show) return null
+
+  // Nadpis: po updatu z konkrétní verze to řekni; při ručním otevření obecně.
+  const multi = releases.length > 1
+  const title = since && multi ? `What's new since v${since}` : "What's new"
+  const newestUrl = releases[0]?.url || RELEASES_PAGE
 
   return (
     <div
@@ -103,7 +119,7 @@ export function WhatsNew(): JSX.Element | null {
     >
       <div className="modal modal--whatsnew" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal__head">
-          <h2>{notes ? notes.name : "What's new"}</h2>
+          <h2>{title}</h2>
           <button className="modal__close" onClick={() => setShow(false)}>
             ✕
           </button>
@@ -111,8 +127,20 @@ export function WhatsNew(): JSX.Element | null {
         <div className="modal__body wn__body">
           {loading ? (
             <p className="wn__p wn__muted">Loading release notes…</p>
-          ) : notes && notes.body.trim() ? (
-            renderNotes(notes.body)
+          ) : releases.length > 0 ? (
+            releases.map((rel) => (
+              <section className="wn__rel" key={rel.version}>
+                <div className="wn__relhead">
+                  <h3 className="wn__ver">{rel.name}</h3>
+                  {fmtDate(rel.date) && <span className="wn__date">{fmtDate(rel.date)}</span>}
+                </div>
+                {rel.body.trim() ? (
+                  renderNotes(rel.body)
+                ) : (
+                  <p className="wn__p wn__muted">No release notes.</p>
+                )}
+              </section>
+            ))
           ) : (
             <p className="wn__p wn__muted">
               Release notes could not be loaded. You can view them on GitHub.
@@ -120,10 +148,7 @@ export function WhatsNew(): JSX.Element | null {
           )}
         </div>
         <div className="modal__foot">
-          <button
-            className="btn-secondary"
-            onClick={() => window.api.openExternal(notes?.url || RELEASES_PAGE)}
-          >
+          <button className="btn-secondary" onClick={() => window.api.openExternal(newestUrl)}>
             View on GitHub
           </button>
           <button className="btn-primary" onClick={() => setShow(false)}>

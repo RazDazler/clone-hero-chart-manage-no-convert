@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AppConfig, ReminderPosition } from '../../../shared/types'
+import type { AppConfig, ReminderPosition, UpdateCheckResult } from '../../../shared/types'
 import { useStore } from '../store'
 import { HotkeyInput } from './HotkeyInput'
 import { Icon } from './Icon'
@@ -75,6 +75,9 @@ export function Settings(): JSX.Element | null {
     path: string | null
     autoDetected: boolean
   } | null>(null)
+  const [version, setVersion] = useState('')
+  // 'idle' | 'checking' | výsledek kontroly aktualizací.
+  const [checkState, setCheckState] = useState<'idle' | 'checking' | UpdateCheckResult>('idle')
 
   useEffect(() => setDraft(config), [config])
 
@@ -84,6 +87,22 @@ export function Settings(): JSX.Element | null {
     void window.api.chExeStatus().then(setExeStatus)
     void window.api.yargExeStatus().then(setYargStatus)
   }, [show, draft?.songsDir, draft?.chExePath, draft?.yargExePath])
+
+  // Verze pro sekci Updates; při každém otevření resetuj výsledek kontroly.
+  useEffect(() => {
+    if (!show) return
+    void window.api.appVersion().then(setVersion)
+    setCheckState('idle')
+  }, [show])
+
+  const checkUpdates = async (): Promise<void> => {
+    setCheckState('checking')
+    try {
+      setCheckState(await window.api.checkForUpdates())
+    } catch {
+      setCheckState({ status: 'error' })
+    }
+  }
 
   if (!show || !draft) return null
 
@@ -271,6 +290,51 @@ export function Settings(): JSX.Element | null {
               Alt+Tab — leave it blank to disable. Click the field and press a key or combo (e.g.{' '}
               <code>F10</code> or <code>Control+Shift+H</code>); Backspace clears it.
             </p>
+          </fieldset>
+
+          <fieldset className="field">
+            <span>Updates</span>
+            <div className="about">
+              <span className="about__ver">
+                Clone Hero Chart Manager {version ? <strong>v{version}</strong> : null}
+              </span>
+              <button
+                type="button"
+                className="btn-secondary about__btn"
+                onClick={checkUpdates}
+                disabled={checkState === 'checking'}
+              >
+                {checkState === 'checking' ? 'Checking…' : 'Check for updates'}
+              </button>
+            </div>
+            {typeof checkState === 'object' ? (
+              <p className={`field__hint about__result about__result--${checkState.status}`}>
+                {checkState.status === 'uptodate'
+                  ? "You're on the latest version."
+                  : checkState.status === 'available'
+                    ? checkState.canAutoUpdate
+                      ? `Version v${checkState.version} is available. Close Settings to download it from the banner.`
+                      : `Version v${checkState.version} is available.`
+                    : "Couldn't check for updates right now. Check your connection or view releases on GitHub."}
+                {checkState.status === 'available' && !checkState.canAutoUpdate && checkState.url ? (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      className="linkbtn"
+                      onClick={() => checkState.url && window.api.openExternal(checkState.url)}
+                    >
+                      View release
+                    </button>
+                  </>
+                ) : null}
+              </p>
+            ) : (
+              <p className="field__hint">
+                Check for a new version without restarting. The installer build updates itself; the
+                portable build links you to the download.
+              </p>
+            )}
           </fieldset>
         </div>
 

@@ -147,7 +147,9 @@ export function App(): JSX.Element {
       try {
         const v = await window.api.appVersion()
         const last = localStorage.getItem('chm.lastSeenVersion')
-        if (last && last !== v) useStore.getState().setShowWhatsNew(true)
+        // Po updatu ukaž changelog VŠECH verzí novějších než ta, kterou měl minule
+        // (ne jen té poslední) — ať vidí, co všechno se mezitím změnilo.
+        if (last && last !== v) useStore.getState().openWhatsNew(last)
         localStorage.setItem('chm.lastSeenVersion', v)
       } catch {
         /* nevadí */

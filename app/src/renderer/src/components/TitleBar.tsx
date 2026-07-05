@@ -46,7 +46,7 @@ function LaunchBtn({ game, runningGame, onLaunch, busy }: LaunchBtnProps): JSX.E
 export function TitleBar(): JSX.Element {
   const setShowSettings = useStore((s) => s.setShowSettings)
   const setShowLibrary = useStore((s) => s.setShowLibrary)
-  const setShowWhatsNew = useStore((s) => s.setShowWhatsNew)
+  const openWhatsNew = useStore((s) => s.openWhatsNew)
 
   const [runningGame, setRunningGame] = useState<Game>(null)
   const [busy, setBusy] = useState(false)
@@ -102,7 +102,7 @@ export function TitleBar(): JSX.Element {
           <button
             className="titlebar__version"
             title="What's new in this version"
-            onClick={() => setShowWhatsNew(true)}
+            onClick={() => openWhatsNew(null)}
           >
             v{version}
           </button>
