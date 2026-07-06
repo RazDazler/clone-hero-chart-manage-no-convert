@@ -25,8 +25,11 @@ import {
   libListPlaylists,
   libMove,
   libOpen,
+  libPlaylistSongs,
   libReadMeta,
+  libRemoveFromPlaylist,
   libRename,
+  libRenamePlaylist,
   libReveal,
   libTrash,
   libWriteMeta
@@ -128,6 +131,13 @@ export function registerIpc(): void {
     libAddToPlaylist(name, relItems)
   )
   ipcMain.handle('lib:deletePlaylist', (_e, name: string) => libDeletePlaylist(name))
+  ipcMain.handle('lib:renamePlaylist', (_e, oldName: string, newName: string) =>
+    libRenamePlaylist(oldName, newName)
+  )
+  ipcMain.handle('lib:playlistSongs', (_e, name: string) => libPlaylistSongs(name))
+  ipcMain.handle('lib:removeFromPlaylist', (_e, name: string, hashes: string[]) =>
+    libRemoveFromPlaylist(name, hashes)
+  )
 
   ipcMain.handle('config:get', () => getConfig())
   ipcMain.handle('config:songsDirExists', () => existsSync(getConfig().songsDir))

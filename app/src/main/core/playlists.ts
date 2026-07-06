@@ -21,7 +21,11 @@ import { app } from 'electron'
 import { createHash } from 'crypto'
 import { existsSync, promises as fsp } from 'fs'
 import { basename, join } from 'path'
-import type { PlaylistAddResult, PlaylistInfo } from '../../shared/types'
+import { getConfig } from './config'
+import { readSongMeta } from './songmeta'
+import type { PlaylistAddResult, PlaylistInfo, PlaylistSong } from '../../shared/types'
+
+const SONG_MARKERS = ['song.ini', 'notes.chart', 'notes.mid']
 
 const HEADER = Buffer.from([0xea, 0xec, 0x33, 0x01])
 const ENTRY_HASH_LEN = 32
@@ -154,4 +158,76 @@ export async function addSongsToPlaylist(
 export async function deletePlaylist(name: string): Promise<void> {
   const file = join(setlistsDir(), `${sanitizeSetlistName(name)}.setlist`)
   await fsp.rm(file, { force: true })
+}
+
+/** Přejmenuje setlist (soubor). */
+export async function renamePlaylist(oldName: string, newName: string): Promise<void> {
+  const dir = setlistsDir()
+  const src = join(dir, `${sanitizeSetlistName(oldName)}.setlist`)
+  const dst = join(dir, `${sanitizeSetlistName(newName)}.setlist`)
+  if (!existsSync(src)) throw new Error('Playlist not found')
+  if (existsSync(dst)) throw new Error('A playlist with that name already exists')
+  await fsp.rename(src, dst)
+}
+
+/** Odebere ze setlistu písně podle hashů (přepíše soubor). */
+export async function removeSongsFromPlaylist(name: string, hashes: string[]): Promise<void> {
+  const file = join(setlistsDir(), `${sanitizeSetlistName(name)}.setlist`)
+  const remove = new Set(hashes)
+  const remaining = decodeSetlist(await fsp.readFile(file)).filter((h) => !remove.has(h))
+  await fsp.writeFile(file, encodeSetlist(remaining))
+}
+
+// ── Rozřešení hash → píseň (pro zobrazení obsahu setlistu) ─────────────
+// Index knihovny (hash → umělec/název) je drahý (hashuje všechny charty), proto
+// se krátce cacheuje. Metadata (song.ini) hash NEMĚNÍ (ten je jen z notes.chart/
+// mid), takže editace metadat cache neznehodnocuje; mění ji přidání/smazání písní.
+let indexCache: { at: number; map: Map<string, { artist: string; title: string }> } | null = null
+
+async function libraryHashIndex(): Promise<Map<string, { artist: string; title: string }>> {
+  if (indexCache && Date.now() - indexCache.at < 5 * 60 * 1000) return indexCache.map
+  const songsDir = getConfig().songsDir
+  const map = new Map<string, { artist: string; title: string }>()
+  const walk = async (dir: string, depth: number): Promise<void> => {
+    if (depth > 6) return
+    let entries: import('fs').Dirent[]
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    if (entries.some((e) => e.isFile() && SONG_MARKERS.includes(e.name.toLowerCase()))) {
+      const h = await songHash(dir)
+      if (h) {
+        const meta = await readSongMeta(dir)
+        const fb = basename(dir)
+        const dash = fb.indexOf(' - ')
+        map.set(h, {
+          artist: (meta.artist || (dash > 0 ? fb.slice(0, dash).trim() : '')).trim(),
+          title: (meta.name || (dash > 0 ? fb.slice(dash + 3).trim() : fb)).trim()
+        })
+      }
+      return
+    }
+    for (const e of entries) if (e.isDirectory()) await walk(join(dir, e.name), depth + 1)
+  }
+  await walk(songsDir, 0)
+  indexCache = { at: Date.now(), map }
+  return map
+}
+
+/** Písně v setlistu, rozřešené proti knihovně (nenalezené = `found:false`). */
+export async function getPlaylistSongs(name: string): Promise<PlaylistSong[]> {
+  const file = join(setlistsDir(), `${sanitizeSetlistName(name)}.setlist`)
+  let hashes: string[]
+  try {
+    hashes = decodeSetlist(await fsp.readFile(file))
+  } catch {
+    return []
+  }
+  const idx = await libraryHashIndex()
+  return hashes.map((h) => {
+    const e = idx.get(h)
+    return { hash: h, artist: e?.artist ?? '', title: e?.title ?? '', found: !!e }
+  })
 }

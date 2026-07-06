@@ -158,6 +158,14 @@ export interface PlaylistInfo {
   count: number
 }
 
+/** Píseň v setlistu, rozřešená proti knihovně (`found:false` = v knihovně není). */
+export interface PlaylistSong {
+  hash: string
+  artist: string
+  title: string
+  found: boolean
+}
+
 /** Výsledek přidání písní do playlistu. */
 export interface PlaylistAddResult {
   added: number
@@ -245,6 +253,12 @@ export interface RendererApi {
   libAddToPlaylist(name: string, relItems: string[]): Promise<PlaylistAddResult>
   /** Smaže celý playlist. */
   libDeletePlaylist(name: string): Promise<void>
+  /** Přejmenuje playlist. */
+  libRenamePlaylist(oldName: string, newName: string): Promise<void>
+  /** Vrátí písně v playlistu, rozřešené proti knihovně. */
+  libPlaylistSongs(name: string): Promise<PlaylistSong[]>
+  /** Odebere z playlistu písně podle hashů. */
+  libRemoveFromPlaylist(name: string, hashes: string[]): Promise<void>
   getJobs(): Promise<DownloadJob[]>
   clearFinishedJobs(): Promise<void>
   onJobUpdate(cb: (job: DownloadJob) => void): () => void

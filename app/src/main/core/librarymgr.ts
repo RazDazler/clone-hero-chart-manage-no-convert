@@ -6,12 +6,20 @@ import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, statSync } from
 import { basename, extname, join, resolve, sep } from 'path'
 import { getConfig } from './config'
 import { readSongMeta, writeSongMeta } from './songmeta'
-import { addSongsToPlaylist, deletePlaylist, listPlaylists } from './playlists'
+import {
+  addSongsToPlaylist,
+  deletePlaylist,
+  getPlaylistSongs,
+  listPlaylists,
+  removeSongsFromPlaylist,
+  renamePlaylist
+} from './playlists'
 import { findDuplicates } from './duplicates'
 import type {
   DupGroup,
   PlaylistAddResult,
   PlaylistInfo,
+  PlaylistSong,
   SongMeta
 } from '../../shared/types'
 
@@ -166,6 +174,15 @@ export function libAddToPlaylist(
 }
 export function libDeletePlaylist(name: string): Promise<void> {
   return deletePlaylist(name)
+}
+export function libRenamePlaylist(oldName: string, newName: string): Promise<void> {
+  return renamePlaylist(oldName, newName)
+}
+export function libPlaylistSongs(name: string): Promise<PlaylistSong[]> {
+  return getPlaylistSongs(name)
+}
+export function libRemoveFromPlaylist(name: string, hashes: string[]): Promise<void> {
+  return removeSongsFromPlaylist(name, hashes)
 }
 
 // ── Duplicity ─────────────────────────────────────────────────────────

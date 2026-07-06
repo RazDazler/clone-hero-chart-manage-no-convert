@@ -9,6 +9,7 @@ import type {
   LibListing,
   PlaylistAddResult,
   PlaylistInfo,
+  PlaylistSong,
   ReleaseNotes,
   RhythmVerseSystem,
   SearchResponse,
@@ -62,6 +63,12 @@ const api = {
     ipcRenderer.invoke('lib:addToPlaylist', name, relItems) as Promise<PlaylistAddResult>,
   libDeletePlaylist: (name: string) =>
     ipcRenderer.invoke('lib:deletePlaylist', name) as Promise<void>,
+  libRenamePlaylist: (oldName: string, newName: string) =>
+    ipcRenderer.invoke('lib:renamePlaylist', oldName, newName) as Promise<void>,
+  libPlaylistSongs: (name: string) =>
+    ipcRenderer.invoke('lib:playlistSongs', name) as Promise<PlaylistSong[]>,
+  libRemoveFromPlaylist: (name: string, hashes: string[]) =>
+    ipcRenderer.invoke('lib:removeFromPlaylist', name, hashes) as Promise<void>,
 
   getJobs: () => ipcRenderer.invoke('jobs:getAll') as Promise<DownloadJob[]>,
   clearFinishedJobs: () => ipcRenderer.invoke('jobs:clearFinished') as Promise<void>,

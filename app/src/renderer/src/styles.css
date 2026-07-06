@@ -3225,6 +3225,142 @@ body {
   color: var(--text-faint);
 }
 
+/* ---------- Playlist manager ---------- */
+.modal--plm {
+  width: 760px;
+  max-width: 94vw;
+  height: 74vh;
+  display: flex;
+  flex-direction: column;
+}
+.plm__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  gap: 12px;
+  padding: 14px 18px;
+  min-height: 0;
+}
+.plm__lists,
+.plm__songs {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow-y: auto;
+  min-height: 0;
+}
+.plm__pad {
+  padding: 16px;
+}
+.plm__list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.plm__list:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.plm__list--sel {
+  background: rgba(124, 92, 255, 0.14);
+}
+.plm__listname {
+  flex: 1;
+  font-size: 13.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plm__renameinput {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  color: var(--text);
+  padding: 4px 7px;
+  font-size: 13px;
+  outline: none;
+}
+.plm__listcount {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.plm__iconbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.plm__iconbtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+.plm__iconbtn--danger:hover {
+  color: var(--warn);
+}
+.plm__songs {
+  display: flex;
+  flex-direction: column;
+}
+.plm__songlist {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+}
+.plm__song {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.plm__song:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.plm__songtext {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+.plm__songtitle {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plm__songtitle--missing {
+  color: var(--text-faint);
+  font-style: italic;
+}
+.plm__songartist {
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.plm__song--missing {
+  opacity: 0.7;
+}
+.plm__songfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+
 /* ---------- Scrollbars ---------- */
 ::-webkit-scrollbar {
   width: 10px;

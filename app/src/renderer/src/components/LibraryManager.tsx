@@ -4,6 +4,7 @@ import { useStore } from '../store'
 import { DuplicatesModal } from './DuplicatesModal'
 import { Icon } from './Icon'
 import { PlaylistDialog } from './PlaylistDialog'
+import { PlaylistManagerModal } from './PlaylistManagerModal'
 import { SongMetaDialog } from './SongMetaDialog'
 
 type Dialog =
@@ -32,6 +33,7 @@ export function LibraryManager(): JSX.Element | null {
   const [metaFor, setMetaFor] = useState<{ rel: string; title: string } | null>(null)
   const [playlistFor, setPlaylistFor] = useState<string[] | null>(null)
   const [dupOpen, setDupOpen] = useState(false)
+  const [plmOpen, setPlmOpen] = useState(false)
   const dialogOpenRef = useRef(false)
   dialogOpenRef.current = dialog !== null
 
@@ -209,6 +211,9 @@ export function LibraryManager(): JSX.Element | null {
           <div className="lib__spacer" />
           <button className="lib__btn" onClick={() => { setDialog({ type: 'new' }); setDialogValue('') }}>
             <Icon name="folderPlus" size={15} /> New folder
+          </button>
+          <button className="lib__btn" onClick={() => setPlmOpen(true)} title="Manage Clone Hero playlists">
+            <Icon name="note" size={15} /> Playlists
           </button>
           <button className="lib__btn" onClick={() => setDupOpen(true)} title="Find duplicate charts">
             <Icon name="copy" size={15} /> Duplicates
@@ -397,6 +402,7 @@ export function LibraryManager(): JSX.Element | null {
         {dupOpen ? (
           <DuplicatesModal onClose={() => setDupOpen(false)} onChanged={() => void load(cwd)} />
         ) : null}
+        {plmOpen ? <PlaylistManagerModal onClose={() => setPlmOpen(false)} /> : null}
       </div>
     </div>
   )
