@@ -27,6 +27,7 @@ interface EnchorChart {
   charter?: string | null
   song_length?: number | null // ms
   chartId?: number
+  chartHash?: string | null
   md5?: string | null
   albumArtMd5?: string | null
   diff_guitar?: number
@@ -50,21 +51,19 @@ function diff(v: unknown): number | undefined {
 }
 
 function mapDifficulties(c: EnchorChart): InstrumentDifficulties {
-  // Enchor používá -1 pro „nezahráno". Pokud má `notesData.instruments`, ořežeme
-  // tím seznam (aby se neukázalo, že part existuje, jen protože byl tier > -1).
-  const inst = new Set(c.notesData?.instruments ?? [])
-  const has = (key: string, fallback: number | undefined): number | undefined => {
-    if (!inst.size) return fallback
-    return inst.has(key) ? fallback : undefined
-  }
+  // Zdroj pravdy jsou hodnoty `diff_*`: -1 = nezahráno, 0..6 = tier. Dřív jsme
+  // seznam ořezávali podle `notesData.instruments`, jenže to pole je nespolehlivé
+  // a neúplné — např. chart „Lola Young – SPIDERS" má diff_vocals=4, ale
+  // instruments=["guitar"], takže se vokály chybně schovaly. Řídíme se proto
+  // přímo tiery (diff() vrací undefined pro -1).
   return {
-    guitar: has('guitar', diff(c.diff_guitar)),
-    bass: has('bass', diff(c.diff_bass)),
-    drums: has('drums', diff(c.diff_drums) ?? diff(c.diff_drums_real)),
-    vocals: has('vocals', diff(c.diff_vocals)),
-    keys: has('keys', diff(c.diff_keys)),
-    guitarghl: has('guitarghl', diff(c.diff_guitarghl)),
-    bassghl: has('bassghl', diff(c.diff_bassghl)),
+    guitar: diff(c.diff_guitar),
+    bass: diff(c.diff_bass),
+    drums: diff(c.diff_drums) ?? diff(c.diff_drums_real),
+    vocals: diff(c.diff_vocals),
+    keys: diff(c.diff_keys),
+    guitarghl: diff(c.diff_guitarghl),
+    bassghl: diff(c.diff_bassghl),
     band: diff(c.diff_band)
   }
 }
@@ -97,7 +96,9 @@ function normalize(c: EnchorChart): SongResult {
     needsConversion: false,
     official: false,
     downloadUrl: md5 ? `${FILES}/${md5}.sng` : null,
-    downloadPageUrl: c.chartId != null ? `https://www.enchor.us/chart/${c.chartId}` : null,
+    // Web Encore směruje na chart přes route `chart/:hash` s `chartHash` (ne
+    // chartId — ten route nematchne a spadne na prázdné hledání „No results").
+    downloadPageUrl: c.chartHash ? `https://www.enchor.us/chart/${c.chartHash}` : null,
     externalUrl: null,
     sizeBytes: null // API ji nevrací; .sng je obvykle 5–50 MB
   }
