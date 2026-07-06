@@ -204,7 +204,20 @@ export function registerIpc(): void {
   // Polling stavu her — vysílá změny rendereru + řídí reminder pill.
   // Status je teď 'clone-hero' | 'yarg' | null — pill se zobrazí pro JAKOUKOLI hru.
   let lastRunning: string | null | 'init' = 'init'
+  // Zábrana překryvu: `runningGame()` spouští až dvě `tasklist` volání (timeout
+  // 2,5 s každé). Když je systém zatížený a jeden poll trvá déle než 3 s interval,
+  // bez tohohle by se `tasklist` procesy stohovaly. Necháme běžet jen jeden poll.
+  let pollInFlight = false
   const pollGame = async (): Promise<void> => {
+    if (pollInFlight) return
+    pollInFlight = true
+    try {
+      await pollGameInner()
+    } finally {
+      pollInFlight = false
+    }
+  }
+  const pollGameInner = async (): Promise<void> => {
     const running = await runningGame()
     if (running !== lastRunning) {
       const wasNone = lastRunning === null || lastRunning === 'init'

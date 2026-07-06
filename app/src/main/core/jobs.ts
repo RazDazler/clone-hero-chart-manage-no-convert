@@ -1,7 +1,8 @@
 // Orchestrátor fronty stahování → rozbalení → (konverze) → instalace.
 
 import { EventEmitter } from 'events'
-import { copyFileSync, mkdtempSync, rmSync, existsSync, mkdirSync, statSync } from 'fs'
+import { mkdtempSync, existsSync, mkdirSync, statSync } from 'fs'
+import { copyFile, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import { basename, join } from 'path'
 import { randomUUID } from 'crypto'
@@ -197,7 +198,7 @@ class JobManager extends EventEmitter {
           workDir = localPath
         } else {
           const downloadPath = join(tmpRoot, basename(localPath))
-          copyFileSync(localPath, downloadPath)
+          await copyFile(localPath, downloadPath)
 
           // Pokračuj stejnou cestou jako u stažených souborů.
           if (isArchiveByMagic(downloadPath)) {
@@ -306,7 +307,7 @@ class JobManager extends EventEmitter {
 
       // 4) Install into the library
       this.setStage(id, 'installing', 'Installing into library…')
-      const { installedPaths } = install(installSource, song, job.targetSubfolder)
+      const { installedPaths } = await install(installSource, song, job.targetSubfolder)
 
       this.update(id, {
         stage: 'done',
@@ -322,7 +323,7 @@ class JobManager extends EventEmitter {
       })
     } finally {
       try {
-        if (existsSync(tmpRoot)) rmSync(tmpRoot, { recursive: true, force: true })
+        if (existsSync(tmpRoot)) await rm(tmpRoot, { recursive: true, force: true })
       } catch {
         /* úklid best-effort */
       }

@@ -91,7 +91,25 @@ export function createOverlay(): BrowserWindow {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  win.once('ready-to-show', () => win.show())
+  // Reveal bez „poloprůhledného záseku": u transparent frameless okna dělá
+  // Windows (DWM) při show() pomalé prolnutí, kdy je okno ~1 s poloprůhledné a
+  // prosvítá skrz něj plocha/okno za ním. Řídíme si náběh sami — ukážeme okno
+  // s nulovou krytím (DWM prolnutí tak proběhne neviditelně) a pak ho krátce a
+  // plynule zvýšíme na plnou krytí.
+  win.once('ready-to-show', () => {
+    win.setOpacity(0)
+    win.show()
+    const startedAt = Date.now()
+    const DURATION_MS = 160
+    const fade = (): void => {
+      if (win.isDestroyed()) return
+      const t = Math.min(1, (Date.now() - startedAt) / DURATION_MS)
+      win.setOpacity(t)
+      if (t < 1) setTimeout(fade, 16)
+      else win.setOpacity(1)
+    }
+    fade()
+  })
 
   win.on('closed', () => {
     mainWindow = null

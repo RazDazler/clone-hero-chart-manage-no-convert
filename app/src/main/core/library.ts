@@ -1,14 +1,6 @@
 // Instalace stažených/zkonvertovaných písní do knihovny Clone Hero (Songs).
 
-import {
-  copyFileSync,
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  statSync
-} from 'fs'
+import { existsSync, promises as fsp, readdirSync, statSync } from 'fs'
 import { basename, join } from 'path'
 import { getConfig } from './config'
 import type { SongResult } from '../../shared/types'
@@ -125,21 +117,6 @@ function normKey(artist: string, title: string): string {
   return `${n(artist)}|${n(title)}`
 }
 
-/** Přečte artist/title ze `song.ini` (rychlé, malý soubor). */
-function readIniMeta(folder: string): { artist: string; title: string } | null {
-  try {
-    const ini = join(folder, 'song.ini')
-    if (!existsSync(ini)) return null
-    const txt = readFileSync(ini, 'utf-8')
-    const name = /^\s*name\s*=\s*(.+)$/im.exec(txt)?.[1]?.trim()
-    const artist = /^\s*artist\s*=\s*(.+)$/im.exec(txt)?.[1]?.trim()
-    if (!name && !artist) return null
-    return { artist: artist ?? '', title: name ?? '' }
-  } catch {
-    return null
-  }
-}
-
 /** "Artist - Title" → rozdělené; jinak title = celý název. */
 function splitName(name: string): { artist: string; title: string } {
   const dash = name.indexOf(' - ')
@@ -147,24 +124,55 @@ function splitName(name: string): { artist: string; title: string } {
   return { artist: '', title: name.trim() }
 }
 
+/** Async varianta `readIniMeta` (neblokuje event loop). */
+async function readIniMetaAsync(folder: string): Promise<{ artist: string; title: string } | null> {
+  try {
+    const txt = await fsp.readFile(join(folder, 'song.ini'), 'utf-8')
+    const name = /^\s*name\s*=\s*(.+)$/im.exec(txt)?.[1]?.trim()
+    const artist = /^\s*artist\s*=\s*(.+)$/im.exec(txt)?.[1]?.trim()
+    if (!name && !artist) return null
+    return { artist: artist ?? '', title: name ?? '' }
+  } catch {
+    return null // song.ini chybí / nečitelný
+  }
+}
+
 /**
  * Normalizované klíče (artist|title) všech písní v knihovně Songs — z názvů složek
  * a ze `song.ini` (rekurzivně, i podsložky) + volných .sng. Slouží jako NÁPOVĚDA
  * „tohle už asi máš" ve výsledcích hledání. Match není 100% (různé zápisy názvů).
+ *
+ * **Asynchronně (fs.promises), aby to NEBLOKOVALO main event loop** — u velkých
+ * knihoven (tisíce písní) trval synchronní sken ~0,5–1 s a okno na tu dobu při
+ * startu zamrzlo. Async čtení yielduje mezi FS operacemi, takže UI zůstane svižné.
  */
-export function ownedSongKeys(): string[] {
+export async function ownedSongKeys(): Promise<string[]> {
   const songsDir = getConfig().songsDir
-  if (!existsSync(songsDir)) return []
   const keys = new Set<string>()
-  for (const folder of findSongFolders(songsDir)) {
-    const meta = readIniMeta(folder) ?? splitName(basename(folder))
-    if (!meta.title) continue
-    keys.add(normKey(meta.artist, meta.title))
+  const walk = async (dir: string, depth: number): Promise<void> => {
+    if (depth > 6) return
+    let entries: import('fs').Dirent[]
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    // Je to složka písně? (song.ini / notes.chart / notes.mid) → do podsložek už nelez.
+    if (entries.some((e) => e.isFile() && SONG_MARKERS.includes(e.name.toLowerCase()))) {
+      const meta = (await readIniMetaAsync(dir)) ?? splitName(basename(dir))
+      if (meta.title) keys.add(normKey(meta.artist, meta.title))
+      return
+    }
+    for (const e of entries) {
+      const full = join(dir, e.name)
+      if (e.isDirectory()) await walk(full, depth + 1)
+      else if (e.isFile() && e.name.toLowerCase().endsWith('.sng')) {
+        const { artist, title } = splitName(e.name.replace(/\.sng$/i, ''))
+        if (title) keys.add(normKey(artist, title))
+      }
+    }
   }
-  for (const sng of findSngFiles(songsDir)) {
-    const { artist, title } = splitName(basename(sng).replace(/\.sng$/i, ''))
-    if (title) keys.add(normKey(artist, title))
-  }
+  await walk(songsDir, 0)
   return [...keys]
 }
 
@@ -219,7 +227,11 @@ export function listSongFolders(): string[] {
  * do knihovny. `subfolder` = volitelná cílová podsložka uvnitř Songs.
  * Vrací cesty nainstalovaných složek.
  */
-export function install(sourceRoot: string, song: SongResult, subfolder?: string): InstallResult {
+export async function install(
+  sourceRoot: string,
+  song: SongResult,
+  subfolder?: string
+): Promise<InstallResult> {
   const baseSongsDir = getConfig().songsDir
   // Sanitizace případné podsložky (může obsahovat i vnořenou cestu od uživatele).
   // POZOR: prázdné segmenty musí pryč PŘED sanitizací — `sanitize('')` vrací
@@ -231,7 +243,7 @@ export function install(sourceRoot: string, song: SongResult, subfolder?: string
     .filter(Boolean)
     .join('\\')
   const songsDir = cleanSub ? join(baseSongsDir, cleanSub) : baseSongsDir
-  if (!existsSync(songsDir)) mkdirSync(songsDir, { recursive: true })
+  if (!existsSync(songsDir)) await fsp.mkdir(songsDir, { recursive: true })
 
   const installed: string[] = []
   const folders = findSongFolders(sourceRoot)
@@ -244,7 +256,9 @@ export function install(sourceRoot: string, song: SongResult, subfolder?: string
         ? sanitize(`${song.artist} - ${song.title}`)
         : sanitize(folder.split(/[\\/]/).pop() || `${song.artist} - ${song.title}`)
       const dest = uniqueDir(join(songsDir, folderName))
-      cpSync(folder, dest, { recursive: true })
+      // Async kopie — písně mají velké .ogg stopy (desítky MB), cpSync by na tu
+      // dobu zamrzl celé okno. `fsp.cp` yielduje.
+      await fsp.cp(folder, dest, { recursive: true })
       installed.push(dest)
     }
     return { installedPaths: installed }
@@ -277,7 +291,7 @@ export function install(sourceRoot: string, song: SongResult, subfolder?: string
       ? sanitize(`${song.artist} - ${song.title}`)
       : sanitize((sng.split(/[\\/]/).pop() || 'song.sng').replace(/\.sng$/i, ''))
     const dest = uniqueFile(songsDir, baseName, '.sng')
-    copyFileSync(sng, dest)
+    await fsp.copyFile(sng, dest)
     installed.push(dest)
   }
   return { installedPaths: installed }

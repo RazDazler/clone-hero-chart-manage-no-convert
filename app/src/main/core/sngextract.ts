@@ -56,10 +56,34 @@ export async function extractSng(
 
   await new Promise<void>((resolve, reject) => {
     let pending: Promise<void> = Promise.resolve()
+    let settled = false
+    let timer: NodeJS.Timeout
 
-    sng.on('error', (err: unknown) => reject(err instanceof Error ? err : new Error(String(err))))
+    // Inaktivní timeout: .sng je už na disku, rozbalení je lokální I/O a rychlé.
+    // Kdyby stream vyslal `header`, ale žádné `file` eventy (prázdný/uříznutý
+    // nebo parserem nepobraný .sng), Promise by se nikdy nevyřešila → zablokovala
+    // by CELOU frontu (pump na ni čeká) a neuklidil by se temp. Proto po delší
+    // nečinnosti radši odmítneme. Timer se resetuje při každém souboru.
+    const finish = (err?: unknown): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      if (err) reject(err instanceof Error ? err : new Error(String(err)))
+      else resolve()
+    }
+    const arm = (): void => {
+      clearTimeout(timer)
+      timer = setTimeout(
+        () => finish(new Error('Unpacking the .sng timed out — it may be empty or corrupt.')),
+        60_000
+      )
+    }
+    arm()
+
+    sng.on('error', (err: unknown) => finish(err))
 
     sng.on('file', (fileName: string, fileStream: ReadableStream<Uint8Array>, nextFile) => {
+      arm() // aktivita → resetuj timeout
       const safe = sanitize(fileName)
       const dest = join(songDir, safe)
       const writeNode = Readable.fromWeb(fileStream as unknown as Parameters<typeof Readable.fromWeb>[0])
@@ -68,9 +92,9 @@ export async function extractSng(
         .then(() => pipeline(writeNode, createWriteStream(dest)))
         .then(() => {
           if (nextFile) nextFile()
-          else resolve()
+          else finish()
         })
-        .catch(reject)
+        .catch((e) => finish(e))
     })
 
     sng.start()
