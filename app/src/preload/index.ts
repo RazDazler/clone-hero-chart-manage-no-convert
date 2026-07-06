@@ -49,6 +49,8 @@ const api = {
   libRename: (relItem: string, newName: string) =>
     ipcRenderer.invoke('lib:rename', relItem, newName) as Promise<void>,
   libTrash: (relItem: string) => ipcRenderer.invoke('lib:trash', relItem) as Promise<void>,
+  libMoveOut: (relItems: string[], destAbsDir: string) =>
+    ipcRenderer.invoke('lib:moveOut', relItems, destAbsDir) as Promise<void>,
   libMove: (src: string, destDir: string) =>
     ipcRenderer.invoke('lib:move', src, destDir) as Promise<void>,
   libCopy: (src: string, destDir: string) =>
@@ -90,7 +92,8 @@ const api = {
     ipcRenderer.invoke('config:set', patch) as Promise<AppConfig>,
   songsDirExists: () => ipcRenderer.invoke('config:songsDirExists') as Promise<boolean>,
 
-  chooseDirectory: () => ipcRenderer.invoke('dialog:chooseDir') as Promise<string | null>,
+  chooseDirectory: (defaultPath?: string) =>
+    ipcRenderer.invoke('dialog:chooseDir', defaultPath) as Promise<string | null>,
   /** Vrátí absolutní cestu k souboru přetaženému přes HTML5 drag-and-drop.
    *  V novém Electronu už `File.path` neexistuje (security) — místo toho
    *  `webUtils.getPathForFile()` v preloadu. */

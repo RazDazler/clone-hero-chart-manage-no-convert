@@ -24,6 +24,7 @@ import {
   libList,
   libListPlaylists,
   libMove,
+  libMoveOut,
   libOpen,
   libPlaylistSongs,
   libReadMeta,
@@ -120,6 +121,9 @@ export function registerIpc(): void {
     libRename(relItem, newName)
   )
   ipcMain.handle('lib:trash', (_e, relItem: string) => libTrash(relItem))
+  ipcMain.handle('lib:moveOut', (_e, relItems: string[], destAbsDir: string) =>
+    libMoveOut(relItems, destAbsDir)
+  )
   ipcMain.handle('lib:move', (_e, src: string, destDir: string) => libMove(src, destDir))
   ipcMain.handle('lib:copy', (_e, src: string, destDir: string) => libCopy(src, destDir))
   ipcMain.on('lib:open', (_e, rel: string) => libOpen(rel))
@@ -157,10 +161,12 @@ export function registerIpc(): void {
   // Živý náhled UI scale (bez zápisu na disk) — Nastavení volá při posouvání.
   ipcMain.handle('ui:scale', (_e, scale: number) => applyUiScale(scale))
 
-  ipcMain.handle('dialog:chooseDir', async () => {
+  ipcMain.handle('dialog:chooseDir', async (_e, defaultPath?: string) => {
     const win = getOverlay() ?? undefined
     const res = await dialog.showOpenDialog(win as BrowserWindow, {
-      properties: ['openDirectory']
+      properties: ['openDirectory'],
+      // Předvyplň naposledy použitou složku (např. karanténa duplicit).
+      ...(defaultPath && existsSync(defaultPath) ? { defaultPath } : {})
     })
     return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
   })

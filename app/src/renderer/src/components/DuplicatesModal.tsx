@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { DupGroup } from '../../../shared/types'
+import { useStore } from '../store'
 import { Icon } from './Icon'
 
 /** Najde a nabídne smazání duplicit v knihovně. `onChanged` = po smazání obnovit. */
@@ -55,6 +56,30 @@ export function DuplicatesModal({
     }
     onChanged()
     await scan()
+    if (failed) setError(failed)
+    setBusy(false)
+  }
+
+  // Alternativa ke koši (návrh z Redditu): přesun duplicit do zvolené složky.
+  // Koš jde přes Windows shell API, které nefunguje ve Wine/VM na Linuxu —
+  // tohle je čistý fs přesun. Zároveň slouží jako bezpečnější „karanténa".
+  const moveChecked = async (): Promise<void> => {
+    if (checked.size === 0 || busy) return
+    const last = useStore.getState().config?.dupMoveDir
+    const dir = await window.api.chooseDirectory(last || undefined)
+    if (!dir) return
+    setBusy(true)
+    setError(null)
+    let failed: string | null = null
+    try {
+      await window.api.libMoveOut([...checked], dir)
+      // Zapamatuj složku pro příště (i pro předvyplnění dialogu).
+      void useStore.getState().saveConfig({ dupMoveDir: dir })
+    } catch (e) {
+      failed = e instanceof Error ? e.message : String(e)
+    }
+    onChanged()
+    await scan() // i po chybě — část položek už mohla být přesunuta
     if (failed) setError(failed)
     setBusy(false)
   }
@@ -125,11 +150,19 @@ export function DuplicatesModal({
           <div className="lib__spacer" />
           <span className="dup__selinfo">{checked.size} selected</span>
           <button
+            className="btn-secondary"
+            disabled={checked.size === 0 || busy}
+            title="Move the ticked charts to a folder of your choice instead of deleting them. Handy as a quarantine, and works where the Recycle Bin does not (e.g. Wine on Linux)."
+            onClick={() => void moveChecked()}
+          >
+            Move to folder…
+          </button>
+          <button
             className="btn-primary"
             disabled={checked.size === 0 || busy}
             onClick={() => void deleteChecked()}
           >
-            {busy ? 'Deleting…' : `Move ${checked.size || ''} to Recycle Bin`}
+            {busy ? 'Working…' : `Move ${checked.size || ''} to Recycle Bin`}
           </button>
         </div>
       </div>

@@ -2,7 +2,7 @@
 // (do koše), přesun a kopírování. Vše je bezpečně omezené na songsDir.
 
 import { shell } from 'electron'
-import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, statSync } from 'fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'fs'
 import { basename, extname, join, resolve, sep } from 'path'
 import { getConfig } from './config'
 import { readAlbumArt, readSongInfo, readSongMeta, writeSongMeta } from './songmeta'
@@ -144,6 +144,42 @@ export function libMove(srcRelItem: string, destRelDir: string): void {
     if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err
     cpSync(src, dest, { recursive: true })
     void shell.trashItem(src)
+  }
+  invalidateLibraryIndex()
+}
+
+/**
+ * Přesune položky knihovny do složky MIMO knihovnu — „karanténa" duplicit místo
+ * koše (návrh z Redditu: `shell.trashItem` nefunguje ve Wine/VM na Linuxu).
+ * Cíl vybírá uživatel systémovým dialogem; sem přijde absolutní cesta.
+ */
+export function libMoveOut(relItems: string[], destAbsDir: string): void {
+  const destDir = resolve(destAbsDir)
+  let st
+  try {
+    st = statSync(destDir)
+  } catch {
+    throw new Error('Destination folder does not exist')
+  }
+  if (!st.isDirectory()) throw new Error('Destination is not a folder')
+  const base = rootDir()
+  // Uvnitř knihovny karanténa být nesmí — CH by ji při dalším skenu zase načetl.
+  if (destDir === base || destDir.startsWith(base + sep)) {
+    throw new Error('Pick a folder outside the Songs library, otherwise Clone Hero will scan the duplicates again')
+  }
+  for (const rel of relItems) {
+    const src = safeAbs(rel)
+    if (src === base) throw new Error('Cannot move the Songs root')
+    const dest = uniqueDest(destDir, basename(src))
+    try {
+      renameSync(src, dest)
+    } catch (err) {
+      // Cross-device (jiný disk) → kopie + smazání originálu. Záměrně fs.rm,
+      // NE koš — celá pointa téhle funkce je fungovat i bez Windows shellu.
+      if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err
+      cpSync(src, dest, { recursive: true })
+      rmSync(src, { recursive: true, force: true })
+    }
   }
   invalidateLibraryIndex()
 }

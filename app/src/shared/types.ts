@@ -110,6 +110,8 @@ export interface AppConfig {
   showReminder: boolean
   /** Roh obrazovky, kde se reminder zobrazí. */
   reminderPosition: ReminderPosition
+  /** Poslední složka, kam se přesouvaly duplicity („Move to folder" místo koše). */
+  dupMoveDir: string
 }
 
 export type RhythmVerseSystem = 'ch' | 'ps' | 'rb3' | 'all'
@@ -258,6 +260,8 @@ export interface RendererApi {
   libCreateFolder(rel: string, name: string): Promise<void>
   libRename(relItem: string, newName: string): Promise<void>
   libTrash(relItem: string): Promise<void>
+  /** Přesune položky knihovny do složky MIMO knihovnu (karanténa duplicit — funguje i tam, kde koš ne, např. Wine). */
+  libMoveOut(relItems: string[], destAbsDir: string): Promise<void>
   libMove(src: string, destDir: string): Promise<void>
   libCopy(src: string, destDir: string): Promise<void>
   libOpen(rel: string): void
@@ -291,7 +295,7 @@ export interface RendererApi {
   setConfig(patch: Partial<AppConfig>): Promise<AppConfig>
   /** True if the configured Songs folder exists. */
   songsDirExists(): Promise<boolean>
-  chooseDirectory(): Promise<string | null>
+  chooseDirectory(defaultPath?: string): Promise<string | null>
   /** Otevře nativní file picker pro chart/archiv. */
   chooseSongFile(): Promise<{ path: string; name: string } | null>
   /** Bezpečně získá absolutní cestu z drag-and-drop File. */

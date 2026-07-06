@@ -131,7 +131,8 @@ function defaults(): AppConfig {
       toggleOverlay: 'Control+I'
     },
     showReminder: false, // opt-in
-    reminderPosition: 'bottom-right'
+    reminderPosition: 'bottom-right',
+    dupMoveDir: '' // poslední karanténní složka pro duplicity
   }
 }
 
