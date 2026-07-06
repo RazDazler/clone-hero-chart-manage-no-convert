@@ -1,18 +1,21 @@
-// Clone Hero playlisty (.setlist). Formát zreverzován z komunitního nástroje
-// ExternalSetlistCreator (funkční, hra ho hraje):
+// Clone Hero playlisty (.setlist). Formát OVĚŘEN bajt po bajtu proti setlistu,
+// který vytvořila přímo hra Clone Hero v1.1.0 (ground truth):
 //
 //   Hlavička:   EA EC 33 01                (4 B)
-//   Počet:      uint16 little-endian       (2 B)
-//   Rezerva:    00 00                      (2 B)
-//   Per píseň:
+//   Počet:      uint32 little-endian       (4 B)
+//   Per píseň (35 B):
 //     0x20                                 (1 B oddělovač)
 //     MD5 hex UPPERCASE souboru notes.chart/notes.mid jako 32 ASCII bajtů
-//     rychlost %: int32 little-endian      (4 B, default 100)
+//     rychlost %: JEDEN bajt               (1 B, default 100 = 0x64)
 //     0x00                                 (1 B)
 //
-// Píseň se identifikuje MD5 syrového `notes.chart` (preferováno) nebo `notes.mid`.
-// CH si hash spáruje s naskenovanou knihovnou — do songcache.bin sahat nemusíme.
+// Píseň se identifikuje MD5 syrového `notes.chart` (preferováno) nebo `notes.mid`,
+// UPPERCASE hex. CH si hash spáruje s naskenovanou knihovnou (songcache.bin) — do
+// ní sahat nemusíme. Nový setlist CH uvidí až po restartu (čte je při startu).
 // Setlisty leží v `Documents\Clone Hero\Setlists\<název>.setlist`.
+//
+// POZOR: komunitní nástroj ExternalSetlistCreator používá pro rychlost int32
+// (4 B) — to je špatně, CH má 1 bajt. Nekopírovat odtud.
 
 import { app } from 'electron'
 import { createHash } from 'crypto'
@@ -47,30 +50,33 @@ export async function songHash(folderAbs: string): Promise<string | null> {
   return null
 }
 
-/** Serializuje seznam hashů do .setlist bufferu. */
+/** Serializuje seznam hashů do .setlist bufferu (přesně jako CH). */
 export function encodeSetlist(hashes: string[], speed = 100): Buffer {
   const parts: Buffer[] = [HEADER]
-  const count = Buffer.alloc(2)
-  count.writeUInt16LE(hashes.length & 0xffff, 0)
-  parts.push(count, Buffer.from([0x00, 0x00]))
+  const count = Buffer.alloc(4)
+  count.writeUInt32LE(hashes.length >>> 0, 0)
+  parts.push(count)
   for (const h of hashes) {
-    const sp = Buffer.alloc(4)
-    sp.writeInt32LE(speed, 0)
-    parts.push(Buffer.from([0x20]), Buffer.from(h, 'utf-8'), sp, Buffer.from([0x00]))
+    parts.push(
+      Buffer.from([0x20]),
+      Buffer.from(h, 'utf-8'), // 32 ASCII hex (uppercase)
+      Buffer.from([speed & 0xff]), // rychlost jako 1 bajt (100 = 0x64)
+      Buffer.from([0x00])
+    )
   }
   return Buffer.concat(parts)
 }
 
-/** Rozparsuje .setlist buffer zpět na seznam hashů (pro append/dedupe). */
+/** Rozparsuje .setlist buffer zpět na seznam hashů (pro append/dedupe/procházení). */
 export function decodeSetlist(buf: Buffer): string[] {
   const hashes: string[] = []
   if (buf.length < 8 || !buf.subarray(0, 4).equals(HEADER)) return hashes
-  let off = 8 // header(4) + count(2) + rezerva(2)
-  while (off + 1 + ENTRY_HASH_LEN + 4 + 1 <= buf.length) {
+  let off = 8 // header(4) + count(4)
+  while (off + 1 + ENTRY_HASH_LEN + 1 + 1 <= buf.length) {
     if (buf[off] !== 0x20) break
     off += 1
     hashes.push(buf.subarray(off, off + ENTRY_HASH_LEN).toString('utf-8'))
-    off += ENTRY_HASH_LEN + 4 + 1 // hash + speed + 0x00
+    off += ENTRY_HASH_LEN + 1 + 1 // hash + speed(1) + 0x00
   }
   return hashes
 }
