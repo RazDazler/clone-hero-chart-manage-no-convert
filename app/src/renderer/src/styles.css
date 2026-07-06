@@ -3391,3 +3391,54 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---------- Library manager: bohaté řádky ---------- */
+.lib__item--rich {
+  align-items: center;
+  padding: 8px 12px;
+}
+.lib__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.lib__title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.lib__subline {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.libdiff {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.libdiff--none {
+  color: var(--text-faint);
+  font-size: 13px;
+}
+.libdiff__inst {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.libdiff__dots {
+  display: inline-flex;
+  gap: 2px;
+}
+.libdiff__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+}

@@ -7,6 +7,7 @@ import type {
   DownloadJob,
   DupGroup,
   LibListing,
+  LibSongInfo,
   PlaylistAddResult,
   PlaylistInfo,
   PlaylistSong,
@@ -57,6 +58,8 @@ const api = {
     ipcRenderer.invoke('lib:readMeta', relItem) as Promise<SongMeta>,
   libWriteMeta: (relItem: string, fields: SongMeta) =>
     ipcRenderer.invoke('lib:writeMeta', relItem, fields) as Promise<void>,
+  libSongInfo: (rels: string[]) =>
+    ipcRenderer.invoke('lib:songInfo', rels) as Promise<LibSongInfo[]>,
   libFindDuplicates: () => ipcRenderer.invoke('lib:findDuplicates') as Promise<DupGroup[]>,
   libListPlaylists: () => ipcRenderer.invoke('lib:listPlaylists') as Promise<PlaylistInfo[]>,
   libAddToPlaylist: (name: string, relItems: string[]) =>

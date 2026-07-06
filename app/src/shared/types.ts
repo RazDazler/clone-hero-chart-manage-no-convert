@@ -127,6 +127,19 @@ export interface LibListing {
   entries: LibEntry[]
 }
 
+/** Detailní info o písni z knihovny (pro bohaté řádky v Library manageru). */
+export interface LibSongInfo {
+  rel: string
+  title: string
+  artist: string
+  charter: string
+  album: string
+  genre: string
+  year: number | null
+  lengthSeconds: number | null
+  difficulties: InstrumentDifficulties
+}
+
 /** Editovatelná metadata písně (song.ini). */
 export interface SongMeta {
   name?: string
@@ -243,6 +256,8 @@ export interface RendererApi {
   libReveal(relItem: string): void
   /** Přečte metadata (song.ini) písně. */
   libReadMeta(relItem: string): Promise<SongMeta>
+  /** Detailní info (obtížnosti, charter, délka…) pro dávku písní — pro bohaté řádky. */
+  libSongInfo(rels: string[]): Promise<LibSongInfo[]>
   /** Zapíše zadaná metadata do song.ini. */
   libWriteMeta(relItem: string, fields: SongMeta): Promise<void>
   /** Najde duplicity v knihovně (identické + varianty téže písně). */

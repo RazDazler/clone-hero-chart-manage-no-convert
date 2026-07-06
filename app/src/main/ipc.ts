@@ -28,6 +28,7 @@ import {
   libPlaylistSongs,
   libReadMeta,
   libRemoveFromPlaylist,
+  libSongInfo,
   libRename,
   libRenamePlaylist,
   libReveal,
@@ -125,6 +126,7 @@ export function registerIpc(): void {
   ipcMain.handle('lib:writeMeta', (_e, relItem: string, fields: SongMeta) =>
     libWriteMeta(relItem, fields)
   )
+  ipcMain.handle('lib:songInfo', (_e, rels: string[]) => libSongInfo(rels))
   ipcMain.handle('lib:findDuplicates', () => libFindDuplicates())
   ipcMain.handle('lib:listPlaylists', () => libListPlaylists())
   ipcMain.handle('lib:addToPlaylist', (_e, name: string, relItems: string[]) =>

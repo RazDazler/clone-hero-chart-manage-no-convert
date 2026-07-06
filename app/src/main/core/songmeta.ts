@@ -3,7 +3,7 @@
 
 import { promises as fsp } from 'fs'
 import { join } from 'path'
-import type { SongMeta } from '../../shared/types'
+import type { InstrumentDifficulties, SongMeta } from '../../shared/types'
 
 /** Pole, která editor nabízí (a v tomto pořadí). */
 export const META_FIELDS: (keyof SongMeta)[] = [
@@ -68,4 +68,49 @@ export async function writeSongMeta(folderAbs: string, fields: SongMeta): Promis
   }
 
   await fsp.writeFile(iniPath, lines.join(eol), 'utf-8')
+}
+
+/**
+ * Detailní info pro bohatý řádek v knihovně — VŠE ze `song.ini` (žádné parsování
+ * chartu): název/umělec/charter/album/žánr/rok/délka + obtížnosti nástrojů
+ * (diff_* jsou tam přímo, stejná stupnice 0–6 jako u vyhledávání). Vrací null,
+ * když song.ini chybí.
+ */
+export async function readSongInfo(
+  folderAbs: string
+): Promise<Omit<import('../../shared/types').LibSongInfo, 'rel'> | null> {
+  let txt: string
+  try {
+    txt = await fsp.readFile(join(folderAbs, 'song.ini'), 'utf-8')
+  } catch {
+    return null
+  }
+  const g = (k: string): string | undefined =>
+    new RegExp(`^\\s*${k}\\s*=\\s*(.*)$`, 'im').exec(txt)?.[1]?.trim()
+  // Tier: <=0 nebo chybí = nezahráno (konzistentní s vyhledáváním).
+  const diff = (k: string): number | undefined => {
+    const v = g(k)
+    if (v === undefined) return undefined
+    const n = parseInt(v, 10)
+    return Number.isFinite(n) && n > 0 ? Math.min(n, 6) : undefined
+  }
+  const lenMs = parseInt(g('song_length') ?? '', 10)
+  const yr = parseInt(g('year') ?? '', 10)
+  const difficulties: InstrumentDifficulties = {
+    guitar: diff('diff_guitar'),
+    bass: diff('diff_bass'),
+    drums: diff('diff_drums') ?? diff('diff_drums_real'),
+    vocals: diff('diff_vocals'),
+    keys: diff('diff_keys') ?? diff('diff_keys_real')
+  }
+  return {
+    title: g('name') ?? '',
+    artist: g('artist') ?? '',
+    charter: g('charter') ?? g('frets') ?? '',
+    album: g('album') ?? '',
+    genre: g('genre') ?? '',
+    year: Number.isFinite(yr) ? yr : null,
+    lengthSeconds: Number.isFinite(lenMs) ? Math.round(lenMs / 1000) : null,
+    difficulties
+  }
 }

@@ -5,7 +5,7 @@ import { shell } from 'electron'
 import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, statSync } from 'fs'
 import { basename, extname, join, resolve, sep } from 'path'
 import { getConfig } from './config'
-import { readSongMeta, writeSongMeta } from './songmeta'
+import { readSongInfo, readSongMeta, writeSongMeta } from './songmeta'
 import {
   addSongsToPlaylist,
   deletePlaylist,
@@ -17,6 +17,7 @@ import {
 import { findDuplicates } from './duplicates'
 import type {
   DupGroup,
+  LibSongInfo,
   PlaylistAddResult,
   PlaylistInfo,
   PlaylistSong,
@@ -157,6 +158,19 @@ export function libReadMeta(relItem: string): Promise<SongMeta> {
 }
 export function libWriteMeta(relItem: string, fields: SongMeta): Promise<void> {
   return writeSongMeta(safeAbs(relItem), fields)
+}
+/** Detailní info pro dávku písní (bohaté řádky). Vrátí jen ty, co mají song.ini. */
+export async function libSongInfo(rels: string[]): Promise<LibSongInfo[]> {
+  const out: LibSongInfo[] = []
+  for (const rel of rels) {
+    try {
+      const info = await readSongInfo(safeAbs(rel))
+      if (info) out.push({ rel, ...info })
+    } catch {
+      /* přeskoč neplatné */
+    }
+  }
+  return out
 }
 
 // ── Playlisty (.setlist) ──────────────────────────────────────────────
