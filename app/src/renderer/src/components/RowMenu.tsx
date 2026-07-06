@@ -4,7 +4,7 @@ import type { SongResult } from '../../../shared/types'
 import { useStore } from '../store'
 import { Icon } from './Icon'
 
-const MENU_WIDTH = 200
+const MENU_WIDTH = 236
 const MENU_GAP = 6
 
 /** Kontextové ⋮ menu u řádku skladby.
