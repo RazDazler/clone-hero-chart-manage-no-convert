@@ -29,6 +29,8 @@ interface EnchorChart {
   chartId?: number
   md5?: string | null
   albumArtMd5?: string | null
+  parentFolderId?: string | null
+  driveFileId?: string | null
   diff_guitar?: number
   diff_bass?: number
   diff_drums?: number
@@ -101,7 +103,12 @@ function normalize(c: EnchorChart): SongResult {
     // JS bundlu: `copyLink(i.md5)` → `enchor.us/chart/${md5}`.)
     downloadPageUrl: md5 ? `https://www.enchor.us/chart/${md5}` : null,
     externalUrl: null,
-    sizeBytes: null // API ji nevrací; .sng je obvykle 5–50 MB
+    sizeBytes: null, // API ji nevrací; .sng je obvykle 5–50 MB
+    // Google Drive složka, kde chart leží = charterova sbírka. Encore web z toho
+    // dělá `drive.google.com/open?id=…`; `parentFolderId` je složka nad chartem.
+    driveFolderUrl: c.parentFolderId
+      ? `https://drive.google.com/open?id=${c.parentFolderId}`
+      : null
   }
 }
 

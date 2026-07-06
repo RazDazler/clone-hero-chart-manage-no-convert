@@ -53,6 +53,8 @@ export interface SongResult {
   downloadPageUrl: string | null
   externalUrl: string | null
   sizeBytes: number | null
+  /** Odkaz na Google Drive složku, kde chart leží (charterova sbírka). Jen Encore. */
+  driveFolderUrl?: string | null
 }
 
 export interface SearchResponse {

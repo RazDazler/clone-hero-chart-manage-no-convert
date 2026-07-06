@@ -93,6 +93,19 @@ export function RowMenu({ song }: { song: SongResult }): JSX.Element {
                   <Icon name="globe" size={15} /> Open page in browser
                 </button>
               ) : null}
+              {song.driveFolderUrl ? (
+                <button
+                  className="rowmenu__item"
+                  role="menuitem"
+                  title="Open the Google Drive folder this chart lives in (the charter's collection)"
+                  onClick={() => {
+                    window.api.openExternal(song.driveFolderUrl as string)
+                    close()
+                  }}
+                >
+                  <Icon name="folder" size={15} /> Open charter&apos;s Google Drive
+                </button>
+              ) : null}
               {link ? (
                 <button
                   className="rowmenu__item"
