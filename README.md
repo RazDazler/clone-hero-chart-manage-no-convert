@@ -1,4 +1,4 @@
-<img width="2288" height="2009" alt="firefox_mT7HVYBfrv" src="https://github.com/user-attachments/assets/de9564b0-0613-4a7b-a8d7-3e3c3fa54d0d" />
+
 https://chartmanager.pages.dev/
 
 # Clone Hero Chart Manager (CHM)
