@@ -1,36 +1,47 @@
 :root {
-  /* Sjednocené s landing page (chartmanager.pages.dev). */
-  --bg: #07080f;
-  --bg-solid: #07080f;
-  --bg-grad: radial-gradient(1200px 500px at 50% -10%, #1a1430 0%, #07080f 60%);
-  --panel: rgba(255, 255, 255, 0.035);
-  --panel-hover: rgba(255, 255, 255, 0.07);
-  --row-hover: rgba(124, 92, 255, 0.07);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --text: #eef0f7;
-  --text-dim: #8b90a6;
-  --text-faint: #6b7088;
-  --accent: #7c5cff;
-  --accent-2: #ff4d8d;
+  /* REDESIGN v2 (dle mockupu): tmavě NAVY modré schéma, plochý základ,
+     modrý akcent místo fialovo-růžového gradientu, kulatější rohy. */
+  --bg: #0d1428;
+  --bg-solid: #0d1428;
+  --bg-grad: none;
+  --bg-side: #0a101f;
+  --panel: rgba(255, 255, 255, 0.03);
+  --panel-hover: rgba(255, 255, 255, 0.06);
+  --row-hover: rgba(var(--accent-rgb), 0.08);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(148, 170, 220, 0.18);
+  --text: #e8edf7;
+  --text-dim: #8b97b0;
+  --text-faint: #66718c;
+  --accent: #3f6bf0;
+  --accent-2: #5b83ff;
+  /* RGB kanály akcentu — aby šly tinty rgba(var(--accent-rgb), α) přebarvit
+     jedním přepnutím proměnné (viz grafitový skin níže). */
+  --accent-rgb: 63, 107, 240;
+  --accent-2-rgb: 91, 131, 255;
   --accent-tri: #2dd6c0;
-  --accent-grad: linear-gradient(100deg, #7c5cff 0%, #b14bf4 45%, #ff4d8d 100%);
-  --accent-grad-tri: linear-gradient(100deg, #2dd6c0 0%, #7c5cff 48%, #ff4d8d 100%);
+  --accent-grad: linear-gradient(180deg, #4a76ff 0%, #3a62e8 100%);
+  --accent-grad-tri: linear-gradient(100deg, #2dd6c0 0%, #3f6bf0 100%);
   --ok: #2dd6c0;
   --warn: #ff6b6b;
   --radius: 16px;
+  /* Sjednocená stupnice zaoblení (jeden úkol = jedna hodnota). */
+  --r-sm: 8px; /* čipy, tagy, ikonová tlačítka, drobné ovládání */
+  --r-md: 10px; /* VŠECHNA tlačítka + inputy */
+  --r-lg: 14px; /* karty, dialogy, panely */
+  --r-pill: 999px; /* skutečné pilulky */
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
-  --glow: 0 0 0 1px rgba(124, 92, 255, 0.5), 0 0 22px rgba(124, 92, 255, 0.25);
+  --glow: 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 0 22px rgba(var(--accent-rgb), 0.25);
   /* Instrument barvy z landing page. */
   --g-guitar: #ff4d4d;
   --g-bass: #4d8cff;
   --g-drums: #ffc83d;
   --g-keys: #e040fb;
   --g-vocals: #2ad6c0;
-  /* Fonty */
-  --font-display: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
-  --font-body: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'Space Mono', 'Consolas', monospace;
+  /* Fonty — čistý sans dle mockupu (žádný „gaming" display font). */
+  --font-display: 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Consolas', 'Cascadia Mono', monospace;
 }
 
 * {
@@ -56,16 +67,18 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative; /* kotva pro noise overlay, ať ho ořízne zaoblený overflow */
   background: var(--bg-grad), var(--bg);
-  border: 1px solid var(--border-strong);
   /* Bez paddingu = resize edge OS je přímo na hraně viditelného okna.
    * Border-radius drobně menší — vejde se do nezaobleného Win okna bez ořezů.
-   * Vnitřní stín dává hloubku bez nutnosti externího drop shadow (ten by
-   * stejně neměl kam padnout). */
+   * POZOR: žádný `border` — 1px stroke se na zaobleném rohu průhledného okna
+   * aliasuje do ostrého „ostnu" (Windows + zlomkové pixely při 125 % škále).
+   * Hranu proto kreslíme jen INSET box-shadow ringem, který overflow:hidden
+   * ořízne čistě bez přesahu. Pozadí zaoblí ořez sám (hladká AA hrana). */
   border-radius: 10px;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 0 0 1px rgba(0, 0, 0, 0.4) inset;
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   overflow: hidden;
 }
 
@@ -83,8 +96,8 @@ body {
   background:
     radial-gradient(
       520px 110px at 50% 50%,
-      rgba(139, 92, 246, 0.22) 0%,
-      rgba(236, 72, 153, 0.1) 35%,
+      rgba(var(--accent-rgb), 0.22) 0%,
+      rgba(var(--accent-2-rgb), 0.1) 35%,
       transparent 75%
     ),
     linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 100%),
@@ -102,9 +115,9 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(139, 92, 246, 0.5) 30%,
-    rgba(236, 72, 153, 0.6) 50%,
-    rgba(139, 92, 246, 0.5) 70%,
+    rgba(var(--accent-rgb), 0.5) 30%,
+    rgba(var(--accent-2-rgb), 0.6) 50%,
+    rgba(var(--accent-rgb), 0.5) 70%,
     transparent 100%
   );
   pointer-events: none;
@@ -206,8 +219,8 @@ body {
   height: 200%;
   transform: translate(-50%, -50%);
   background:
-    radial-gradient(58% 64% at 50% 50%, rgba(124, 92, 255, 0.3) 0%, transparent 70%),
-    radial-gradient(40% 50% at 50% 62%, rgba(255, 77, 141, 0.22) 0%, transparent 72%);
+    radial-gradient(58% 64% at 50% 50%, rgba(var(--accent-rgb), 0.3) 0%, transparent 70%),
+    radial-gradient(40% 50% at 50% 62%, rgba(var(--accent-2-rgb), 0.22) 0%, transparent 72%);
   filter: blur(8px);
   pointer-events: none;
   z-index: 0;
@@ -226,7 +239,7 @@ body {
   /* Měkčí, difúznější stín laděný do akcentu — splyne se zářícím pozadím. */
   filter:
     drop-shadow(0 2px 1px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 6px 22px rgba(124, 92, 255, 0.4));
+    drop-shadow(0 6px 22px rgba(var(--accent-rgb), 0.4));
   pointer-events: none;
   animation: brandLogoFloat 7s ease-in-out infinite;
 }
@@ -256,7 +269,7 @@ body {
   margin: 0;
   display: inline-flex;
   align-items: baseline;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-display);
   font-size: 17px;
   font-weight: 800;
   letter-spacing: 1.4px;
@@ -267,7 +280,7 @@ body {
   -webkit-app-region: no-drag;
   position: relative;
   /* Jemné vnější halo, ať to "svítí" ze středu titlebaru. */
-  filter: drop-shadow(0 2px 10px rgba(139, 92, 246, 0.18));
+  filter: drop-shadow(0 2px 10px rgba(var(--accent-rgb), 0.18));
 }
 /* CH sedí přímo vedle ART MANAGER bez extra mezery, jen barevně vystupuje. */
 .brand__ch {
@@ -280,7 +293,7 @@ body {
   /* Více vrstvový stín — tmavá hloubka + růžové podsvícení = plastický 3D dojem. */
   filter:
     drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55))
-    drop-shadow(0 0 12px rgba(236, 72, 153, 0.5));
+    drop-shadow(0 0 12px rgba(var(--accent-2-rgb), 0.5));
   transition: filter 0.3s ease;
 }
 /* Gradient se musí nastavit přímo na transformovaná písmena —
@@ -295,7 +308,7 @@ body {
     #ffffff 0%,
     #d4b5ff 25%,
     #a78bfa 55%,
-    #ec4899 100%
+    #5b83ff 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -304,7 +317,7 @@ body {
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .brand:hover .brand__ch {
-  filter: drop-shadow(0 0 14px rgba(236, 72, 153, 0.55))
+  filter: drop-shadow(0 0 14px rgba(var(--accent-2-rgb), 0.55))
     drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45));
 }
 .brand:hover .brand__ch-c {
@@ -380,11 +393,11 @@ body {
 .titlebar__btn:hover {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 80%),
-    rgba(124, 92, 255, 0.2);
-  border-color: rgba(124, 92, 255, 0.45);
+    rgba(var(--accent-rgb), 0.2);
+  border-color: rgba(var(--accent-rgb), 0.45);
   color: var(--text);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px -4px rgba(124, 92, 255, 0.45);
+  box-shadow: 0 6px 16px -4px rgba(var(--accent-rgb), 0.45);
 }
 .titlebar__btn:active {
   transform: translateY(0) scale(0.92);
@@ -441,7 +454,7 @@ body {
 .titlebar__version:hover {
   color: var(--text);
   border-color: var(--accent);
-  background: rgba(124, 92, 255, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
 }
 
 /* ---------- What's new panel ---------- */
@@ -492,10 +505,10 @@ body {
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--text-faint);
-  border-left: 2px solid rgba(124, 92, 255, 0.5);
+  border-left: 2px solid rgba(var(--accent-rgb), 0.5);
   padding: 6px 0 6px 12px;
   margin: 10px 0;
-  background: rgba(124, 92, 255, 0.06);
+  background: rgba(var(--accent-rgb), 0.06);
   border-radius: 0 8px 8px 0;
 }
 .wn__muted {
@@ -625,93 +638,8 @@ body {
   color: var(--text);
 }
 
-/* ---------- Update banner ---------- */
-.updatebar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 8px 10px 0;
-  padding: 9px 12px 9px 14px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, rgba(124, 92, 255, 0.16), rgba(255, 77, 141, 0.12));
-  border: 1px solid rgba(124, 92, 255, 0.4);
-  animation: batchbarIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.updatebar__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  background: var(--accent-grad);
-  color: #fff;
-  flex-shrink: 0;
-}
-.updatebar__text {
-  font-size: 13px;
-  color: var(--text);
-  margin-right: auto;
-}
-.updatebar__text strong {
-  font-weight: 700;
-}
-.updatebar__btn {
-  border: 1px solid rgba(124, 92, 255, 0.5);
-  border-radius: 999px;
-  background: rgba(124, 92, 255, 0.12);
-  color: var(--text);
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 12.5px;
-  letter-spacing: 0.03em;
-  padding: 7px 15px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.12s;
-}
-.updatebar__btn:hover {
-  background: rgba(124, 92, 255, 0.22);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-.updatebar__close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.updatebar__close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
-}
-/* Připravená aktualizace — zelenkavý nádech, ať je jasné, že stačí restart. */
-.updatebar--ready {
-  background: linear-gradient(90deg, rgba(45, 214, 192, 0.16), rgba(124, 92, 255, 0.12));
-  border-color: rgba(45, 214, 192, 0.45);
-}
-/* Průběh stahování. */
-.updatebar__progress {
-  flex: 1;
-  height: 6px;
-  margin-left: auto;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-  max-width: 220px;
-}
-.updatebar__progress-fill {
-  height: 100%;
-  background: var(--accent-grad);
-  border-radius: 3px;
-  transition: width 0.2s ease;
-}
+/* Pozn.: Aktualizace se řeší dole v sidebaru (.side-update-card*), horní pruh
+   „updatebar" byl odstraněn. */
 
 /* ---------- Search bar ---------- */
 .searchbar {
@@ -762,7 +690,7 @@ body {
   z-index: 0;
   border-radius: 9px;
   background: var(--accent-grad);
-  box-shadow: 0 4px 16px rgba(124, 92, 255, 0.42), inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.42), inset 0 0 0 1px rgba(255, 255, 255, 0.16);
   transition:
     transform 0.34s cubic-bezier(0.34, 1.4, 0.5, 1),
     width 0.34s cubic-bezier(0.34, 1.4, 0.5, 1);
@@ -770,7 +698,7 @@ body {
 }
 .seg--db .seg__pill {
   /* Database přepínač má teal→violet akcent. */
-  background: linear-gradient(135deg, #2dd6c0 0%, #7c5cff 100%);
+  background: linear-gradient(135deg, #2dd6c0 0%, #3f6bf0 100%);
   box-shadow: 0 4px 16px rgba(45, 214, 192, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 .seg__btn {
@@ -819,25 +747,42 @@ body {
 /* ---------- Search autocomplete dropdown ---------- */
 .suggest {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
   z-index: 80;
-  background: #121627;
-  border: 1px solid var(--border-strong);
+  /* Sladěno s motivem: navy s jemně světlejším topem (hloubka), spodek = barva boxů. */
+  background: linear-gradient(180deg, #13213e 0%, #0f1a31 100%);
+  border: 1px solid rgba(var(--accent-2-rgb), 0.22);
   border-radius: 14px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(var(--accent-2-rgb), 0.05);
   overflow: hidden;
-  animation: suggestFade 0.12s ease-out;
+  transform-origin: top center;
+  /* „Roleta": panel se odvíjí shora dolů (clip-path zdola) + lehké klesnutí. */
+  animation: suggestRoll 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
-@keyframes suggestFade {
+/* Tenká akcentní linka nahoře — jako by roleta visela z barevné lišty. */
+.suggest::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 45%, var(--accent-tri) 100%);
+  opacity: 0.85;
+  z-index: 1;
+}
+@keyframes suggestRoll {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-8px);
+    clip-path: inset(0 0 100% 0 round 14px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    clip-path: inset(0 0 0 0 round 14px);
   }
 }
 .suggest__head {
@@ -878,12 +823,46 @@ body {
   padding: 8px 10px;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.1s ease;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
   width: 100%;
+  /* Postupné naskakování pod odvíjející se roletou. */
+  animation: suggestItemIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes suggestItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.suggest__item:nth-child(1) {
+  animation-delay: 0.03s;
+}
+.suggest__item:nth-child(2) {
+  animation-delay: 0.06s;
+}
+.suggest__item:nth-child(3) {
+  animation-delay: 0.09s;
+}
+.suggest__item:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.suggest__item:nth-child(5) {
+  animation-delay: 0.15s;
+}
+.suggest__item:nth-child(6) {
+  animation-delay: 0.18s;
+}
+.suggest__item:nth-child(7) {
+  animation-delay: 0.21s;
 }
 .suggest__item--hover,
 .suggest__item:hover {
-  background: var(--row-hover);
+  background: rgba(var(--accent-rgb), 0.14);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 .suggest__art {
   width: 44px;
@@ -917,7 +896,7 @@ body {
   text-overflow: ellipsis;
 }
 .suggest__hl {
-  background: rgba(139, 92, 246, 0.28);
+  background: rgba(var(--accent-rgb), 0.28);
   color: #fff;
   padding: 1px 2px;
   border-radius: 3px;
@@ -948,12 +927,20 @@ body {
   transition: background 0.12s;
 }
 .suggest__all:hover {
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(var(--accent-rgb), 0.12);
   color: #fff;
+}
+/* Uživatelé s omezeným pohybem: žádné odvíjení ani stagger. */
+@media (prefers-reduced-motion: reduce) {
+  .suggest,
+  .suggest__item {
+    animation: none;
+    clip-path: none;
+  }
 }
 .searchbar__input:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
 }
 .searchbar__icon {
   opacity: 0.6;
@@ -989,7 +976,7 @@ body {
   text-transform: uppercase;
   font-size: 13.5px;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(124, 92, 255, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.5, 1), box-shadow 0.18s ease,
     filter 0.18s ease;
 }
@@ -1011,7 +998,7 @@ body {
 .searchbar__go:hover:not(:disabled) {
   transform: translateY(-2px);
   filter: brightness(1.06);
-  box-shadow: 0 12px 30px rgba(255, 77, 141, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 30px rgba(var(--accent-2-rgb), 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 .searchbar__go:hover:not(:disabled)::after {
   transform: translateX(130%);
@@ -1057,7 +1044,7 @@ body {
   color: var(--text);
 }
 .fchip--active {
-  background: rgba(139, 92, 246, 0.16);
+  background: rgba(var(--accent-rgb), 0.16);
   box-shadow: var(--glow);
 }
 .fchip__icon {
@@ -1180,7 +1167,7 @@ body {
 }
 .ddot--on {
   background: var(--accent);
-  box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.6);
 }
 .diffdots:not(.diffdots--off) .ddot:hover {
   transform: scale(1.18);
@@ -1206,7 +1193,7 @@ body {
   background: var(--panel);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 9px;
+  border-radius: var(--r-md);
   padding: 7px 11px;
   font-size: 13px;
   font-weight: 600;
@@ -1270,6 +1257,11 @@ body {
   background: var(--accent-grad);
   color: #fff;
 }
+/* Vybraná položka si i pod kurzorem drží svůj (světlý/akcentní) podklad —
+   jinak by hover přebil pozadí na tmavé a text by na něm zmizel. */
+.dd__item--sel:hover {
+  background: var(--accent-grad);
+}
 
 /* ---------- Drop zone for manual files ---------- */
 .dropzone {
@@ -1299,24 +1291,17 @@ body {
 }
 .dropzone--hover {
   border-color: var(--accent);
-  background: rgba(139, 92, 246, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: var(--text);
   transform: scale(1.02);
   box-shadow: var(--glow);
   animation: none;
 }
-/* Klidové dýchání – jemný pulse aby uživatel zóny všiml. */
+/* Klidová zóna má statický rámeček — dřívější nekonečné „dýchání" border-color
+   překreslovalo prvek v každém snímku i při naprosté nečinnosti (zbytečná zátěž
+   CPU/GPU). Zvýraznění řeší až hover (glow). */
 .dropzone:not(.dropzone--hover) {
-  animation: dropBreathe 4.5s ease-in-out infinite;
-}
-@keyframes dropBreathe {
-  0%,
-  100% {
-    border-color: var(--border-strong);
-  }
-  50% {
-    border-color: rgba(139, 92, 246, 0.5);
-  }
+  border-color: var(--border-strong);
 }
 .dropzone svg,
 .dropzone > .instbtn__circle,
@@ -1359,8 +1344,8 @@ body {
   margin: 10px 16px 0;
   padding: 9px 13px;
   border-radius: 10px;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
   color: var(--text-dim);
   font-size: 12.5px;
   line-height: 1.4;
@@ -1369,7 +1354,7 @@ body {
   color: var(--text);
 }
 .rec-hint code {
-  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 11.5px;
   background: rgba(255, 255, 255, 0.06);
   padding: 1px 5px;
@@ -1407,7 +1392,7 @@ body {
   width: 3px;
   border-radius: 2px;
   background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%);
-  box-shadow: 0 0 14px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.4);
 }
 .resultsbar__count {
   font-size: 13px;
@@ -1462,7 +1447,7 @@ body {
   color: #fff;
 }
 .chk input:focus-visible + .chk__box {
-  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.35);
 }
 .chk input:checked + .chk__box {
   transform: scale(1.05);
@@ -1486,8 +1471,8 @@ body {
   gap: 8px;
   padding: 4px 4px 4px 12px;
   border-radius: 999px;
-  background: rgba(124, 92, 255, 0.12);
-  border: 1px solid rgba(124, 92, 255, 0.4);
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
   animation: batchbarIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes batchbarIn {
@@ -1520,7 +1505,7 @@ body {
   letter-spacing: 0.03em;
   padding: 7px 15px;
   cursor: pointer;
-  box-shadow: 0 4px 14px -4px rgba(255, 77, 141, 0.5);
+  box-shadow: 0 4px 14px -4px rgba(var(--accent-2-rgb), 0.5);
   transition: transform 0.15s, filter 0.15s;
 }
 .batchbar__dl:hover {
@@ -1620,10 +1605,15 @@ body {
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   color: var(--text);
+  -webkit-text-fill-color: var(--text); /* pojistka: zaručí viditelný text i proti dědění */
   font-size: 13px;
   padding: 8px 10px;
   outline: none;
   transition: border-color 0.15s;
+}
+.refine__field input::placeholder {
+  color: var(--text-faint);
+  -webkit-text-fill-color: var(--text-faint);
 }
 .refine__field input:focus {
   border-color: var(--accent);
@@ -1689,12 +1679,6 @@ body {
 .state--empty {
   flex-direction: column;
   gap: 22px;
-  /* Radiální podkres za logem, ať to nepůsobí izolovaně. */
-  background: radial-gradient(
-    560px 220px at 50% 38%,
-    rgba(139, 92, 246, 0.07) 0%,
-    transparent 70%
-  );
 }
 .ch-logo {
   width: 460px;
@@ -1702,7 +1686,7 @@ body {
   max-width: 64%;
   /* Sotva viditelný vodoznak — jen lehce naznačí značku v pozadí. */
   opacity: 0.07;
-  filter: drop-shadow(0 8px 30px rgba(124, 92, 255, 0.25));
+  filter: drop-shadow(0 8px 30px rgba(var(--accent-rgb), 0.25));
   animation: chLogoIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both,
     chLogoFloat 7s ease-in-out 0.6s infinite;
   user-select: none;
@@ -1819,7 +1803,7 @@ body {
 }
 .song:hover {
   background: var(--row-hover);
-  border-color: rgba(124, 92, 255, 0.22);
+  border-color: rgba(var(--accent-rgb), 0.22);
   transform: translateX(3px);
 }
 /* Checkbox sloupec — box se plně zobrazí na hover řádku nebo když je zaškrtnutý. */
@@ -1837,12 +1821,12 @@ body {
   opacity: 1;
 }
 .song--checked {
-  background: rgba(124, 92, 255, 0.08);
-  border-color: rgba(124, 92, 255, 0.35);
+  background: rgba(var(--accent-rgb), 0.08);
+  border-color: rgba(var(--accent-rgb), 0.35);
 }
 .song--selected {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: rgba(139, 92, 246, 0.55);
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.55);
   box-shadow: var(--glow);
 }
 .song__art {
@@ -2017,12 +2001,12 @@ body {
   background: var(--accent-grad);
   color: #fff;
   padding: 9px 14px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 5px 16px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 5px 16px rgba(var(--accent-rgb), 0.3);
   transition: filter 0.15s, transform 0.05s;
 }
 .dl-btn {
@@ -2106,7 +2090,7 @@ body {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid rgba(124, 92, 255, 0.25);
+  border: 2px solid rgba(var(--accent-rgb), 0.25);
   border-top-color: var(--accent);
   animation: jobSpin 0.7s linear infinite;
   flex-shrink: 0;
@@ -2118,16 +2102,16 @@ body {
 }
 /* Běžící chip lehce „dýchá" akcentovým okrajem — signál, že se něco děje. */
 .jobchip--busy {
-  border-color: rgba(124, 92, 255, 0.4);
+  border-color: rgba(var(--accent-rgb), 0.4);
   animation: jobchipPulse 1.8s ease-in-out infinite;
 }
 @keyframes jobchipPulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(124, 92, 255, 0);
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0);
   }
   50% {
-    box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.12);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12);
   }
 }
 
@@ -2223,8 +2207,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(139, 92, 246, 0.16);
-  border: 1px solid rgba(139, 92, 246, 0.4);
+  background: rgba(var(--accent-rgb), 0.16);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
   color: var(--text);
   padding: 5px 6px 5px 11px;
   border-radius: 999px;
@@ -2295,7 +2279,7 @@ body {
   background: var(--accent-grad);
   border-color: transparent;
   color: #fff;
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.4);
 }
 .pgellipsis {
   color: var(--text-faint);
@@ -2309,12 +2293,39 @@ body {
 }
 
 /* ---------- Download queue ---------- */
+/* Plynulé vysunutí/zasunutí spodní lišty: animujeme grid-template-rows 0fr↔1fr
+   (obsah nad ní se posune bez „skoku"). Vnitřek ořízne overflow + jemný fade. */
+.queue-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.queue-wrap--open {
+  grid-template-rows: 1fr;
+}
+.queue-inner {
+  overflow: hidden;
+  min-height: 0;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+.queue-wrap--open .queue-inner {
+  opacity: 1;
+}
 .queue {
   border-top: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.3);
-  max-height: 38%;
+  max-height: 38vh; /* vh místo % — spolehlivý strop i uvnitř grid wrapperu */
   display: flex;
   flex-direction: column;
+}
+@media (prefers-reduced-motion: reduce) {
+  .queue-wrap {
+    transition: none;
+  }
+  .queue-inner {
+    transition: none;
+  }
 }
 .queue__header {
   display: flex;
@@ -2564,7 +2575,7 @@ body {
 }
 .field input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
 .field input {
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -2573,7 +2584,7 @@ body {
   background: var(--panel);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 9px;
+  border-radius: var(--r-md);
   padding: 0 13px;
   cursor: pointer;
 }
@@ -2646,7 +2657,7 @@ body {
 .check input[type='checkbox']:checked {
   background: var(--accent-grad);
   border-color: transparent;
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.45);
+  box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.45);
 }
 .check input[type='checkbox']:checked::after {
   /* Bílá fajfka. */
@@ -2706,35 +2717,37 @@ body {
   border: none;
   color: #fff;
   font-family: var(--font-display);
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 10px 20px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   cursor: pointer;
-  box-shadow: 0 8px 24px -8px rgba(255, 77, 141, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 24px -8px rgba(var(--accent-2-rgb), 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 14px 34px -8px rgba(255, 77, 141, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 14px 34px -8px rgba(var(--accent-2-rgb), 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 .btn-secondary {
   background: var(--panel);
   border: 1px solid var(--border-strong);
   color: var(--text);
   font-family: var(--font-display);
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 10px 20px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, transform 0.15s;
 }
 .btn-secondary:hover {
   border-color: var(--accent);
-  background: rgba(124, 92, 255, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   transform: translateY(-1px);
 }
 
@@ -2826,8 +2839,8 @@ body {
   background: var(--panel-hover);
 }
 .folder-item--sel {
-  background: rgba(139, 92, 246, 0.18);
-  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(var(--accent-rgb), 0.18);
+  border-color: rgba(var(--accent-rgb), 0.5);
 }
 .folder-item em {
   color: var(--text-dim);
@@ -2866,8 +2879,8 @@ body {
   border: 1px solid var(--border);
   color: var(--text);
   padding: 7px 11px;
-  border-radius: 9px;
-  font-size: 12.5px;
+  border-radius: var(--r-md);
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.12s;
@@ -2881,8 +2894,8 @@ body {
   cursor: default;
 }
 .lib__btn--accent {
-  background: rgba(139, 92, 246, 0.18);
-  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(var(--accent-rgb), 0.18);
+  border-color: rgba(var(--accent-rgb), 0.5);
 }
 .lib__btn--danger:hover:not(:disabled) {
   border-color: var(--warn);
@@ -2955,8 +2968,8 @@ body {
   background: var(--panel);
 }
 .lib__item--sel {
-  background: rgba(139, 92, 246, 0.16);
-  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(var(--accent-rgb), 0.16);
+  border-color: rgba(var(--accent-rgb), 0.5);
 }
 .lib__name {
   flex: 1;
@@ -2970,8 +2983,8 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--accent);
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.1);
   padding: 2px 7px;
   border-radius: 6px;
 }
@@ -3258,7 +3271,7 @@ body {
 .dup__openbtn--on {
   color: var(--accent);
   border-color: var(--accent);
-  background: rgba(124, 92, 255, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 .dup__detail {
   display: flex;
@@ -3343,8 +3356,8 @@ body {
 }
 .dup__extra--video {
   color: #b98bff;
-  border-color: rgba(124, 92, 255, 0.4);
-  background: rgba(124, 92, 255, 0.08);
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 .dup__charter {
   flex-shrink: 0;
@@ -3401,7 +3414,7 @@ body {
 .plm__lists,
 .plm__songs {
   border: 1px solid var(--border);
-  border-radius: 11px;
+  border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.02);
   overflow-y: auto;
   min-height: 0;
@@ -3421,7 +3434,7 @@ body {
   background: rgba(255, 255, 255, 0.04);
 }
 .plm__list--sel {
-  background: rgba(124, 92, 255, 0.14);
+  background: rgba(var(--accent-rgb), 0.14);
 }
 .plm__listname {
   flex: 1;
@@ -3436,7 +3449,7 @@ body {
   min-width: 0;
   background: var(--panel);
   border: 1px solid var(--accent);
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   color: var(--text);
   padding: 4px 7px;
   font-size: 13px;
@@ -3452,7 +3465,7 @@ body {
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   border: none;
   background: transparent;
   color: var(--text-faint);
@@ -3479,7 +3492,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 7px 9px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   cursor: pointer;
 }
 .plm__song:hover {
@@ -3533,7 +3546,7 @@ body {
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
+  background: rgba(var(--accent-rgb), 0.5);
   background-clip: padding-box;
   border: 2px solid transparent;
 }
@@ -3656,4 +3669,1915 @@ body {
 }
 .songdetail__edit {
   flex-shrink: 0;
+}
+
+/* ============================================================
+   REDESIGN v2 (dle mockupu): navy schéma, sidebar vlevo,
+   textový brand, panel filtrů nahoře, tabulkové hlavičky,
+   kulatější rohy. Sekce vědomě PŘEPISUJE starší pravidla.
+   ============================================================ */
+
+.app {
+  border-radius: 22px;
+  background: var(--bg);
+}
+
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 218px minmax(0, 1fr);
+  min-height: 0;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar {
+  background: var(--bg-side);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  -webkit-app-region: drag; /* prázdné plochy sidebaru táhnou okno */
+}
+.sidebar button {
+  -webkit-app-region: no-drag;
+}
+.side-launchers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.side-launch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 11px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.side-launch:hover:not(:disabled) {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.45);
+}
+.side-launch:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.side-launch--running {
+  border-color: rgba(45, 214, 192, 0.45);
+}
+.side-launch__logo {
+  height: 22px;
+  width: 30px;
+  object-fit: contain;
+  flex-shrink: 0;
+  -webkit-user-drag: none;
+}
+.side-launch span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side-group {
+  display: flex;
+  flex-direction: column;
+}
+/* Label vlevo + tenká oddělovací čára doprava (na jeho úrovni). */
+.side-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0 6px 10px;
+}
+.side-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.side-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.side-item {
+  text-align: left;
+  height: 40px;
+  padding: 0 14px 0 40px; /* odsazení textu doprava (víc do středu, dle náhledu) */
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: color 0.14s, background 0.14s;
+}
+.side-item:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+}
+.side-item--on {
+  color: #fff;
+  font-weight: 600;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.55), rgba(var(--accent-rgb), 0.22));
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* ── Horní řádek: textový brand + akce ────────────────────── */
+.titlebar {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 20px 4px;
+  background: none;
+  border-bottom: none;
+}
+.titlebar::before,
+.titlebar::after,
+.titlebar__brand::before {
+  display: none;
+}
+.brand-text {
+  font-size: 26px;
+  letter-spacing: -0.005em;
+}
+/* Varianta C: „Chart" tučné bílé, „Manager" tenké tlumené, akcentní modrá tečka. */
+.brand-w1 {
+  color: #fff;
+  font-weight: 800;
+}
+.brand-w2 {
+  color: #9aa6c2;
+  font-weight: 300;
+}
+.brand-dot {
+  color: var(--accent);
+  font-weight: 800;
+}
+.titlebar__spacer {
+  flex: 1;
+  align-self: stretch;
+  -webkit-app-region: drag;
+}
+.titlebar__library {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent-grad);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.05s;
+}
+.titlebar__library:hover {
+  filter: brightness(1.1);
+  box-shadow: none;
+}
+.titlebar__library:active {
+  transform: translateY(1px);
+}
+.titlebar__btn {
+  border-radius: 10px;
+}
+
+/* ── Panel filtrů (instruments / difficulty / exact / drop) ── */
+.filterbar {
+  margin: 6px 20px 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: stretch;
+  gap: 26px;
+  flex-wrap: nowrap;
+}
+.fgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fgroup__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.fgroup__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+.fgroup__row--dots {
+  align-items: center;
+}
+.fgroup--difficulty .diffpick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+.fgroup--difficulty .diffpick__cap {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.filterbar .dropzone {
+  margin-left: auto;
+  align-self: center;
+}
+
+/* ── Info tab + search ────────────────────────────────────── */
+.rec-hint {
+  margin: 12px 20px 0;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  background: rgba(var(--accent-rgb), 0.08);
+  color: #9ab4ff;
+}
+.content .searchbar {
+  /* Symetrická mezera nad i pod search barem (nahoře původních 14, stejně dolů). */
+  padding: 14px 20px 14px;
+  border-bottom: none;
+}
+/* Vyhledávací řádek přes CELOU šířku okna (input roste, Search vpravo). */
+.content .searchbar__row--input {
+  flex: 1;
+  width: 100%;
+}
+
+/* Tenké svislé oddělovací čáry mezi skupinami panelu filtrů. */
+.filterbar .fgroup + .fgroup {
+  border-left: 1px solid var(--border);
+  padding-left: 26px;
+}
+
+/* Drop zóna (1:1 dle mockupu): ikona vedle tučného dvouřádkového textu,
+ * přípony pod tím, čárkovaný rámeček; při hoveru se ROZZÁŘÍ (pulzující glow). */
+.filterbar .dropzone {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  align-self: stretch;
+  width: 252px;
+  min-width: 0;
+  max-width: none;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 13px;
+}
+.dropzone__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+}
+.dropzone__main strong {
+  text-align: left;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+  white-space: nowrap;
+}
+.dropzone__ext {
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.filterbar .dropzone:hover,
+.filterbar .dropzone--hover {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.08);
+  animation: dropzoneGlow 1.6s ease-in-out infinite;
+}
+@keyframes dropzoneGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35), 0 0 14px rgba(var(--accent-rgb), 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.6), 0 0 30px rgba(var(--accent-rgb), 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .filterbar .dropzone:hover,
+  .filterbar .dropzone--hover {
+    animation: none;
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 0 20px rgba(var(--accent-rgb), 0.35);
+  }
+}
+
+/* ── Resultsbar + tabulková hlavička ──────────────────────── */
+.resultsbar {
+  margin: 6px 20px;
+  border-radius: 12px;
+}
+/* Tabulka: hlavička je PRVNÍ dítě scrollovací oblasti (.results--table), takže
+ * sdílí PŘESNĚ stejnou mřížku i šířku jako řádky — čára u ACTIONS pak lícuje
+ * bez ohledu na scrollbar. Hlavička je sticky (drží nahoře při scrollu). */
+.tablewrap {
+  flex: 1;
+  min-height: 0;
+  margin: 0 20px 20px; /* dole stejně jako po stranách (ne připlácnuté k hraně) */
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.012);
+}
+.results--table {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+}
+
+.tablehead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 22px 64px minmax(150px, 1fr) 340px 148px 30px;
+  gap: 14px;
+  align-items: stretch;
+  padding: 0 14px;
+  background: #141d33;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.tablehead > span {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.tablehead__song {
+  grid-column: 2 / 4;
+}
+.tablehead__instruments {
+  grid-column: 4;
+  justify-content: flex-start;
+  padding-left: 6px;
+}
+/* Jediná svislá čára = levý border sloupce ACTIONS (hlavička i řádky ve stejné
+ * mřížce → drží se přesně a vizuálně splynou v jednu svislici). */
+.tablehead__actions {
+  grid-column: 5 / 7;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+/* Řádky uvnitř tabulky: bez vlastního rámečku, oddělené jen spodní linkou. */
+.results--table .song {
+  grid-template-columns: 22px 64px minmax(150px, 1fr) 340px 148px 30px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  margin: 0;
+  padding: 16px 14px;
+  transform: none;
+  animation: none;
+}
+.results--table .song:last-child {
+  border-bottom: none;
+}
+.results--table .song--selected {
+  background: rgba(var(--accent-rgb), 0.14);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.45);
+}
+/* Kompaktnější nástroje, ať se blok vejde do sloupce 340 px a nepřetéká pod čáru. */
+.song .instruments {
+  gap: 10px;
+}
+.song .instrument {
+  width: 56px;
+  gap: 5px;
+}
+.song .instrument .dots {
+  gap: 2.5px;
+}
+.song .instrument .dot {
+  width: 6px;
+  height: 6px;
+}
+.song__diffs {
+  justify-self: stretch;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 6px;
+}
+/* Levý border sloupce Actions = pokračování čáry z hlavičky. */
+.song__action {
+  align-self: stretch;
+  justify-content: center;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+/* ── Spodní lišta (pager) ─────────────────────────────────── */
+.pager {
+  padding: 10px 20px 20px;
+}
+
+/* ── Detail pass 1:1 dle mockupu (okno 1500×1044 @ zoom 1.0) ── */
+
+/* Brand: velký tučný titulek, verze jako prostý šedý text (bez pilulky),
+ * zarovnaná ke SPODNÍMU okraji titulku (jako v mockupu — sedí dole u textu,
+ * ne uprostřed nebo nahoře). */
+.titlebar__left {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.brand-text {
+  font-size: 32px;
+  line-height: 1;
+}
+.titlebar__version {
+  align-self: flex-end;
+  padding: 0 0 3px; /* sedí těsně u spodní hrany titulku, jako v mockupu */
+  line-height: 1;
+  transform: none;
+}
+.titlebar {
+  min-height: 74px;
+  padding: 14px 24px 6px;
+}
+.titlebar__version {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.titlebar__version:hover {
+  color: var(--text);
+  background: none;
+  border: none;
+}
+.titlebar__library {
+  height: 40px;
+  font-size: 13.5px;
+}
+.titlebar__btn {
+  width: 38px;
+  height: 38px;
+}
+
+/* Sidebar: šířka a metriky dle mockupu. */
+.workspace {
+  grid-template-columns: 264px minmax(0, 1fr);
+}
+.sidebar {
+  padding: 18px 14px;
+}
+.side-launch {
+  height: 48px;
+  font-size: 13.5px;
+  border-radius: 12px;
+}
+.side-launch__logo {
+  height: 24px;
+  width: 34px;
+}
+.side-label {
+  font-size: 11px;
+}
+.side-item {
+  height: 44px;
+  font-size: 14px;
+  padding: 0 16px 0 42px; /* odsazení textu doprava (dle náhledu) */
+}
+
+/* Panel filtrů: štítky 11px. */
+.fgroup__label {
+  font-size: 11px;
+}
+
+/* Resultsbar: bez karty — sedí přímo na pozadí; „All" jako modrý chip. */
+.resultsbar {
+  background: none;
+  border: none;
+  margin: 8px 20px 4px;
+  padding: 4px 6px;
+}
+.chk--selectall .chk__label {
+  color: #9ab4ff;
+  background: rgba(var(--accent-rgb), 0.16);
+  border-radius: 9px;
+  padding: 7px 16px;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+/* SNG badge do modra (dle mockupu). */
+.badge--native {
+  color: #8fb0ff;
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+/* Album art 64px. */
+.song__art,
+.song__art-empty {
+  width: 64px;
+  height: 64px;
+}
+
+/* Spodní lišta: modrý filter chip + hranatější stránkovací tlačítka. */
+.filterchip {
+  background: rgba(var(--accent-rgb), 0.2);
+  border-color: rgba(var(--accent-rgb), 0.45);
+  color: #cdd9ff;
+}
+.pgnum,
+.pgbtn {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+/* ── Search + tabulka: 1:1 dle detailního výřezu ──────────── */
+
+/* Search: input a tlačítko V JEDNOM orámovaném kontejneru. */
+.content .searchbar__row--input {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+  gap: 10px;
+}
+.content .searchbar__input {
+  border: none;
+  background: transparent;
+  height: 48px;
+  padding: 0 10px;
+}
+.content .searchbar__input:focus-within {
+  box-shadow: none;
+  border: none;
+}
+.content .searchbar__input input {
+  font-size: 16px;
+}
+.content .searchbar__go {
+  height: 48px;
+  padding: 0 18px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+/* Resultsbar: větší text. */
+.resultsbar__count {
+  font-size: 15px;
+}
+
+/* (Rozložení hlavičky/řádků řeší blok „Tabulka" výše — .results--table.) */
+
+/* „In library": neutrální outline pill s fajfkou (dle výřezu). */
+.badge--owned {
+  color: #cdd6ea;
+  border: 1px solid rgba(148, 170, 220, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Užší okno: zúžit sidebar. */
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+}
+
+/* ============================================================
+   REDESIGN v2.1 — gradienty místo tvrdých tabulek (dle kódů
+   z náhledu). Oddělení plochami barev, ne rámečky.
+   ============================================================ */
+:root {
+  --box: #0f1a31; /* panely: filtry, info, search, hlavička tabulky */
+  --box-hi: #18264c; /* zvýrazněný (vybraný) řádek */
+  --divider: rgba(150, 172, 224, 0.09); /* jemné oddělovače v sidebaru */
+  --tline: rgba(150, 172, 224, 0.14); /* čitelná čára tabulky (rámeček/řádky/ACTIONS) */
+}
+
+/* Hlavní pozadí okna = svislý gradient (top → middle → down). */
+.app {
+  background: linear-gradient(180deg, #080e1e 0%, #0b142b 52%, #070f21 100%);
+}
+.content {
+  background: transparent; /* prosvítá hlavní gradient okna */
+}
+
+/* Sidebar = tmavší VLASTNÍ gradient, ŽÁDNÝ border ani jiné pozadí —
+   oddělí ho od hlavní plochy jen ta tmavší barva (přirozeně). */
+.sidebar {
+  background: linear-gradient(180deg, #091024 0%, #0a132d 100%);
+  border-right: none;
+}
+
+/* „Boxy" = #131e38, bez tvrdého ohraničení. */
+.filterbar {
+  background: var(--box);
+  border-color: transparent;
+}
+.content .searchbar__row--input {
+  background: var(--box);
+  border-color: transparent;
+}
+.rec-hint {
+  background: var(--box);
+  border-color: rgba(var(--accent-rgb), 0.32);
+}
+.tablehead {
+  background: var(--box);
+  border-bottom-color: var(--divider);
+}
+
+/* Tabulka ZŮSTÁVÁ (jen s gradientovým podkladem): orámovaný kontejner,
+   #131e38 hlavička, čitelné oddělovače. Gradient jen zjemnil pozadí, ne rušil
+   tabulku. Hlavička NENÍ sticky (to způsobovalo „řádek nad hlavičkou"). */
+.tablewrap {
+  border: none;
+  background: #0f1a31; /* výchozí pozadí okna s výsledky (nevybrané řádky) */
+  border-radius: 14px;
+  overflow: hidden;
+}
+.tablehead {
+  position: static;
+  border-bottom-color: var(--tline);
+}
+.results--table .song {
+  border-bottom-color: var(--tline);
+}
+.tablehead__actions,
+.song__action {
+  border-left-color: var(--tline);
+}
+.results--table .song--selected {
+  background: var(--box-hi);
+  box-shadow: none;
+  border-color: transparent;
+}
+/* Vybraný řádek si DRŽÍ zvýraznění i pod kurzorem (žádné ztmavení hoverem). */
+.results--table .song--selected:hover {
+  background: var(--box-hi);
+}
+
+/* Zjemnit i drobné oddělovače v sidebaru. */
+.side-label::after {
+  background: var(--divider);
+}
+
+/* Vybrané položky se pod kurzorem NEZTMAVUJÍ — hover nepřebíjí „selected". */
+.side-item--on:hover {
+  color: #fff;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.55), rgba(var(--accent-rgb), 0.22));
+}
+.pgnum--active:hover {
+  background: var(--accent);
+}
+
+/* ── Sidebar v2.2: užší, tmavší, čára POD labelem, gradient launcherů ── */
+.workspace {
+  grid-template-columns: 228px minmax(0, 1fr);
+}
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+}
+
+/* Side panel: vrácený gradient (ne ta tmavší varianta) + víc odsazení dovnitř,
+   ať launch tlačítka i texty mají margin od okrajů jako v náhledu. */
+.sidebar {
+  background: linear-gradient(180deg, #080e1e 0%, #070f21 100%);
+  padding: 16px 16px;
+}
+
+/* Launch tlačítka: BEZ ohraničení, jen lehký gradient (zapadají mezi ploché tlačítka). */
+.side-launch {
+  background: linear-gradient(180deg, rgba(90, 131, 255, 0.14) 0%, rgba(90, 131, 255, 0.035) 100%);
+  border: none;
+}
+.side-launch:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(90, 131, 255, 0.24) 0%, rgba(90, 131, 255, 0.08) 100%);
+}
+
+/* Label nad zapuštěným seznamem (jako „Style"/„Size" v náhledu) — jen text,
+   bez čáry; skupinu vizuálně drží samotný „důlek" pod ním. */
+.side-label {
+  display: block;
+  padding: 0 4px 7px;
+  margin: 0 2px 2px;
+  border-bottom: none;
+}
+.side-label::after {
+  display: none;
+}
+
+/* Položky pod DATABASE/SYSTEM: text víc na střed panelu + větší vertikální
+   rozestupy (seznam se protáhne). */
+.side-item {
+  padding: 0 12px 0 52px;
+  height: 52px;
+}
+.side-list {
+  gap: 8px;
+}
+
+/* Obsah sidebaru odsazený od horního okraje tak, aby horní hrana tlačítka
+   „Launch Clone Hero" lícovala s horní hranou textu „Chart Manager". */
+.sidebar {
+  padding-top: 28px;
+}
+
+/* Spodní lišta (pager) bez horní oddělovací čáry. */
+.pager {
+  border-top: none;
+}
+
+/* Rytmická značka u titulku (varianta F): fret/EQ pruhy v barvách nástrojů. */
+.titlebar__left {
+  gap: 15px;
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 30px;
+  flex-shrink: 0;
+}
+.brand-mark i {
+  width: 5px;
+  border-radius: 3px;
+}
+.brand-mark i:nth-child(1) {
+  height: 42%;
+  background: var(--g-guitar);
+}
+.brand-mark i:nth-child(2) {
+  height: 80%;
+  background: var(--g-drums);
+}
+.brand-mark i:nth-child(3) {
+  height: 56%;
+  background: var(--g-keys);
+}
+.brand-mark i:nth-child(4) {
+  height: 94%;
+  background: var(--g-vocals);
+}
+
+/* Dolní část sidebaru: verze aplikace + „Check for updates" (přesunuto z Nastavení). */
+.side-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.side-version {
+  font-size: 12px;
+  color: var(--text-faint);
+  padding-left: 2px;
+}
+.side-update {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.side-update:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+.side-update:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.side-update__result {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-faint);
+  padding-left: 2px;
+}
+.side-update__result--available {
+  color: #9ab4ff;
+}
+.side-update__result--uptodate {
+  color: var(--ok);
+}
+.side-update__result--error {
+  color: var(--warn);
+}
+
+/* Checkbox „All" zarovnaný do stejné svislice jako řádkové checkboxy
+   (řádkový box je vycentrovaný v 22px sloupci ~16,5 px od levé hrany lišty). */
+.resultsbar {
+  padding-left: 16px;
+}
+/* Označovací tlačítka (checkboxy) o něco tmavší. */
+.chk__box {
+  background: #0d1526;
+  border-color: rgba(148, 170, 220, 0.22);
+}
+
+/* „Download selected" lišta + filter chip: hranatější (do motivu plochých tlačítek). */
+.batchbar {
+  border-radius: 12px;
+  padding: 4px 4px 4px 12px;
+}
+.batchbar__dl {
+  border-radius: var(--r-md);
+}
+.batchbar__clear {
+  border-radius: var(--r-sm);
+}
+.filterchip {
+  border-radius: var(--r-md);
+}
+
+/* Launch tlačítka — každé svůj gradient (dle náhledu):
+   Clone Hero = sytě modrý diagonální, YARG = tlumený šedomodrý. Bez borderu. */
+.side-launch--clone-hero {
+  background: linear-gradient(135deg, #3d5ed6 0%, #16255a 100%);
+  color: #fff;
+}
+.side-launch--clone-hero:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4869e4 0%, #1b2e6c 100%);
+}
+.side-launch--yarg {
+  background: linear-gradient(135deg, #3a4258 0%, #1d2334 100%);
+  color: var(--text-dim);
+}
+.side-launch--yarg:hover:not(:disabled) {
+  background: linear-gradient(135deg, #454e68 0%, #232a40 100%);
+  color: var(--text);
+}
+
+/* Tenčí search bar (byl zbytečně vysoký). */
+.content .searchbar__row--input {
+  padding: 7px;
+}
+.content .searchbar__input {
+  height: 38px;
+}
+.content .searchbar__go {
+  height: 38px;
+}
+
+/* ── Plochá tlačítka — žádné neony, gradienty, stíny ani 3D ── */
+
+/* Primární (My Library, Search, Download, hromadné stažení): solid modrá. */
+.titlebar__library,
+.searchbar__go,
+.dl-btn,
+.btn-primary,
+.batchbar__dl {
+  background: var(--accent);
+  box-shadow: none !important;
+  border: none;
+  transform: none !important;
+  filter: none;
+}
+.titlebar__library::before,
+.titlebar__library::after,
+.searchbar__go::before,
+.searchbar__go::after,
+.dl-btn::before,
+.dl-btn::after,
+.btn-primary::before,
+.btn-primary::after,
+.batchbar__dl::before,
+.batchbar__dl::after {
+  display: none !important;
+}
+.titlebar__library:hover,
+.searchbar__go:hover,
+.dl-btn:hover,
+.btn-primary:hover,
+.batchbar__dl:hover {
+  background: #4d78f5;
+  filter: none;
+}
+.titlebar__library:active,
+.searchbar__go:active,
+.dl-btn:active,
+.btn-primary:active,
+.batchbar__dl:active {
+  background: #3559d8;
+}
+
+/* Sekundární / ikonová / stránkovací: plochý tmavý podklad, jemný border. */
+.pillbtn,
+.btn-secondary,
+.titlebar__btn,
+.pgbtn,
+.pgnum {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  box-shadow: none !important;
+  transform: none !important;
+}
+.pillbtn:hover,
+.btn-secondary:hover,
+.titlebar__btn:hover,
+.pgbtn:hover:not(:disabled),
+.pgnum:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.pgnum--active {
+  background: var(--accent);
+  border-color: transparent;
+}
+
+/* ── Sidebar: odrážkové tečky u položek + plochý „Check for updates" ── */
+
+/* Malá barevná tečka vlevo od textu položky (kytarová červená).
+   Na vybrané položce ji skryjeme — tam značí výběr modrý highlight. */
+.side-item {
+  position: relative;
+}
+.side-item::before {
+  content: '';
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(var(--accent-2-rgb), 0.5); /* tlumená modrá — ladí s akcentem */
+  transition: background 0.14s, box-shadow 0.14s;
+}
+.side-item:hover::before {
+  background: var(--accent-2);
+  box-shadow: 0 0 6px rgba(var(--accent-2-rgb), 0.55);
+}
+.side-item--on::before {
+  display: none;
+}
+
+/* „Check for updates": bez ohraničení, jen plochý podklad (jako launch tlačítka). */
+.side-update {
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
+}
+.side-update:hover:not(:disabled) {
+  border: none;
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+/* ── Běžící hra: zelený gradient + obíhající zelený okraj ──
+   Aktivní launch tlačítko (side-launch--running) dostane zelený podklad
+   a po obvodu obíhá světle zelený „paprsek" (rotující conic-gradient
+   maskovaný jen na 2px okraj). Přebíjí modrý/šedý gradient tlačítek. */
+@property --runangle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+.side-launch--running {
+  position: relative;
+  background: linear-gradient(135deg, #1f9a5f 0%, #0b3f28 100%);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(52, 211, 130, 0.22);
+}
+.side-launch--running:hover:not(:disabled) {
+  background: linear-gradient(135deg, #24a869 0%, #0e4a30 100%);
+}
+/* Obsah (logo + text) nad obíhajícím okrajem. */
+.side-launch--running > * {
+  position: relative;
+  z-index: 1;
+}
+.side-launch--running::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px; /* tloušťka obíhajícího okraje */
+  background: conic-gradient(
+    from var(--runangle),
+    rgba(52, 211, 130, 0) 0deg,
+    rgba(52, 211, 130, 0) 230deg,
+    #34d382 290deg,
+    #b6ffdb 320deg,
+    #34d382 350deg,
+    rgba(52, 211, 130, 0) 360deg
+  );
+  /* Ukázat jen okraj (padding-box XOR content-box). */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: runBorder 2.6s linear infinite;
+  pointer-events: none;
+}
+@keyframes runBorder {
+  to {
+    --runangle: 360deg;
+  }
+}
+/* Omezený pohyb: statický zelený okraj, žádné obíhání. */
+@media (prefers-reduced-motion: reduce) {
+  .side-launch--running::before {
+    animation: none;
+    background: linear-gradient(90deg, #34d382, #b6ffdb);
+  }
+}
+
+/* ── Update panel v sidebaru (dostupné / stahování / připraveno) ── */
+.side-update-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.16) 0%, rgba(var(--accent-rgb), 0.05) 100%);
+  animation: sideUpdateIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes sideUpdateIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.side-update-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+/* Pulzující tečka před titulkem — signál „něco nového". */
+.side-update-card__title::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 8px var(--accent-2);
+  animation: sideUpdatePulse 1.8s ease-in-out infinite;
+}
+@keyframes sideUpdatePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.side-update-card__desc {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+.side-update-card__btn {
+  margin-top: 2px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.side-update-card__btn:hover {
+  background: #4d78f5;
+}
+.side-update-card__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.side-update-card__close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+.side-update-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.side-update-progress__fill {
+  height: 100%;
+  background: var(--accent-grad);
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+/* „Ready" (staženo) → zelený nádech místo modrého. */
+.side-update-card--ready {
+  background: linear-gradient(180deg, rgba(45, 214, 192, 0.18) 0%, rgba(45, 214, 192, 0.05) 100%);
+}
+.side-update-card--ready .side-update-card__title::before {
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+.side-update-card--ready .side-update-card__btn {
+  background: #22a883;
+}
+.side-update-card--ready .side-update-card__btn:hover {
+  background: #27bd92;
+}
+
+/* Obíhající okraj (jako u běžících launcherů) pro „živá" upozornění. */
+.side-update-card--live::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--runangle),
+    rgba(var(--accent-2-rgb), 0) 0deg,
+    rgba(var(--accent-2-rgb), 0) 230deg,
+    var(--accent-2) 290deg,
+    #b9ccff 320deg,
+    var(--accent-2) 350deg,
+    rgba(var(--accent-2-rgb), 0) 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: runBorder 2.6s linear infinite;
+  pointer-events: none;
+}
+/* Ready → zelený obíhající okraj. */
+.side-update-card--ready.side-update-card--live::before {
+  background: conic-gradient(
+    from var(--runangle),
+    rgba(45, 214, 192, 0) 0deg,
+    rgba(45, 214, 192, 0) 230deg,
+    var(--ok) 290deg,
+    #b6ffe9 320deg,
+    var(--ok) 350deg,
+    rgba(45, 214, 192, 0) 360deg
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .side-update-card,
+  .side-update-card__title::before {
+    animation: none;
+  }
+  .side-update-card--live::before {
+    animation: none;
+    background: linear-gradient(90deg, var(--accent-2), #b9ccff);
+  }
+  .side-update-card--ready.side-update-card--live::before {
+    background: linear-gradient(90deg, var(--ok), #b6ffe9);
+  }
+}
+
+/* ── Klouzavé zvýraznění položek DATABASE / SYSTEM ──
+   Jedna „ryba" (indikátor) na skupinu plavně sjede na aktivní položku
+   s lehkým pružným dojezdem. Položky samy už žádné vlastní pozadí nemají. */
+/* Seznam = zapuštěný „důlek" (segmented control). Položky v něm kloužou a
+   vybraná je vystouplá pilulka (.side-indicator). Padding 6px odsadí obsah od
+   stěn důlku; indikátor je proto taky odsazený o 6px (viz top/left/right). */
+.side-list {
+  position: relative;
+  padding: 6px;
+  border-radius: var(--r-lg);
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+.side-indicator {
+  position: absolute;
+  top: 6px; /* = padding důlku, ať lícuje s první položkou */
+  left: 6px;
+  right: 6px;
+  height: 52px; /* = výška položky (.side-item) */
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.55), rgba(var(--accent-rgb), 0.28));
+  /* Vystouplá pilulka: horní lesk + měkký stín dolů (pop z důlku). */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(0, 0, 0, 0.45),
+    0 3px 8px rgba(0, 0, 0, 0.3);
+  z-index: 0;
+  pointer-events: none;
+  transition: transform 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+/* Text položky nad indikátorem. */
+.side-item {
+  z-index: 1;
+}
+/* Aktivní položka: zvýraznění dělá indikátor, ne pozadí samotné položky. */
+.side-item--on,
+.side-item--on:hover {
+  background: none;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .side-indicator {
+    transition: none;
+  }
+}
+
+/* ── Ikonová tlačítka v titlebaru (settings / minimize / close) ──
+   Čtvercový podklad ZŮSTÁVÁ, jen bez ohraničení; hover jemně zvýrazní ikonu.
+   Křížek se při hoveru zalije červeně (plná výplň, ne obrys). */
+.titlebar__btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+}
+.titlebar__btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.titlebar__btn--close:hover {
+  background: #e23b5b;
+  color: #fff;
+}
+
+/* ── Stejný flat styl pro pager a dropdowny (MIN/MAX, sort) ──
+   Čtvercový/pilulkový podklad zůstává, jen bez ohraničení; hover jen zesvětlí. */
+.pgbtn,
+.pgnum {
+  border: none;
+}
+.dd__btn {
+  border: none;
+}
+.dd__btn:hover:not(:disabled) {
+  border: none;
+  background: var(--panel-hover);
+}
+
+/* Aktivní stránka si drží modrou i pod kurzorem (hover ji nesmí ztmavit). */
+.pgnum--active:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Viditelný focus ring pro klávesovou navigaci ──
+   Custom tlačítka/položky měly jen slabý defaultní ring na tmavém pozadí.
+   :focus-visible se ukáže jen při ovládání klávesnicí, ne po kliknutí myší. */
+.side-item:focus-visible,
+.side-launch:focus-visible,
+.side-update:focus-visible,
+.side-update-card__btn:focus-visible,
+.suggest__item:focus-visible,
+.pgbtn:focus-visible,
+.pgnum:focus-visible,
+.dd__btn:focus-visible,
+.titlebar__btn:focus-visible,
+.titlebar__library:focus-visible,
+.dl-btn:focus-visible,
+.searchbar__go:focus-visible,
+.instbtn:focus-visible,
+.artist-chip:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+/* ── Zvuková ukázka: play overlay na album artu ──
+   Poslech 30s ukázky před stažením. Tlačítko překrývá obal, objeví se při
+   hoveru řádku (nebo je vidět, když ukázka běží / se načítá). */
+.song__art {
+  position: relative;
+}
+.song__preview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  padding: 0;
+  /* Převzít zaoblení obalu, ať progress prstenec sedí do rohů (jinak je hranatý
+     a zaoblené rohy obalu ho v rozích osekají). */
+  border-radius: inherit;
+  background: rgba(6, 10, 22, 0.55);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.song__preview > svg {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+/* Play trojúhelník opticky doprava — vypadá vycentrovaně. */
+.song__preview--idle > svg {
+  transform: translateX(1px);
+}
+/* Odkrytí: hover řádku, klávesový fokus, nebo aktivní ukázka. */
+.song:hover .song__preview,
+.song__preview:focus-visible,
+.song__preview--active,
+.song__preview--loading,
+.song__preview--playing {
+  opacity: 1;
+}
+.song__preview:hover {
+  background: rgba(6, 10, 22, 0.72);
+}
+/* Hraje → akcentní barva + jemný spodní „equalizer" proužek by byl moc; stačí barva. */
+.song__preview--playing {
+  color: var(--accent-2);
+  background: rgba(6, 10, 22, 0.5);
+}
+/* Nenalezeno / chyba: ztlumené, ale klikatelné (retry). */
+.song__preview--unavailable,
+.song__preview--error {
+  color: rgba(255, 255, 255, 0.55);
+}
+.song__preview:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: -2px;
+}
+/* Načítací spinner. */
+.song__preview-spin {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: previewSpin 0.7s linear infinite;
+}
+@keyframes previewSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Progress prstenec kolem obalu = čas ukázky (0→100 % za 30 s).
+   Conic-gradient řízený proměnnou --pv (0–1), maskovaný jen na obvod. Track je
+   jemná bílá, vyplněná část akcentní modrá. Rohy ořízne overflow obalu. */
+.song__preview-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2.5px;
+  background: conic-gradient(
+    from -90deg,
+    var(--accent-2) calc(var(--pv, 0) * 360deg),
+    rgba(255, 255, 255, 0.16) 0
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .song__preview-spin {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   GRAFITOVÝ SKIN (data-theme="graphite")
+   Monochromový „granitový" motiv: přebarví modrý brand-akcent na
+   světle šedou/bílou a navy plochy na grafit. Ikony, layout i funkce
+   zůstávají stejné jako v modrém buildu. Barvy nástrojů a stavové
+   barvy (ok/warn, běžící hra) záměrně ponechány kvůli čitelnosti.
+   ============================================================ */
+
+/* Celoplošné jemné zrno (jen v grafitu). Element je vždy v DOM, skryje se v navy. */
+.noise-overlay {
+  display: none;
+}
+[data-theme='graphite'] .noise-overlay {
+  display: block;
+  position: absolute; /* uvnitř .app → ořízne ho zaoblený overflow (žádný ostrý roh) */
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Přepnutí proměnných: akcent → světle šedá/bílá, plochy → grafit. */
+[data-theme='graphite'] {
+  --accent: #e9e9ec;
+  --accent-2: #f3f3f6;
+  --accent-rgb: 205, 207, 214;
+  --accent-2-rgb: 225, 227, 233;
+  --accent-tri: #cfd0d6;
+  --accent-grad: linear-gradient(180deg, #f2f2f5 0%, #cfcfd4 100%);
+  --text: #eaeaee;
+  --text-dim: #8b8b92;
+  --text-faint: #57575d;
+  /* Základní plochy (modaly používají var(--bg-solid)) → grafit. */
+  --bg: #0e0e10;
+  --bg-solid: #17181b;
+  --bg-side: #121214;
+  --box: #1b1c1f;
+  --box-hi: #26272c;
+  /* Rozdělovací čáry jako TMAVÉ vyryté rýhy (ne světlé linky) — emboss dělá
+     světlý „lip" pod čarou u řádků tabulky (viz níže). */
+  --divider: rgba(0, 0, 0, 0.32);
+  --tline: rgba(0, 0, 0, 0.42);
+  --panel: rgba(255, 255, 255, 0.03);
+  --panel-hover: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.16);
+}
+
+/* Základní plochy → grafit. */
+[data-theme='graphite'] .app {
+  background: linear-gradient(180deg, #0e0e10 0%, #0c0c0e 55%, #0a0a0c 100%);
+}
+[data-theme='graphite'] .sidebar {
+  background: linear-gradient(180deg, #151517 0%, #111113 100%);
+}
+[data-theme='graphite'] .tablewrap {
+  background: #151618;
+}
+[data-theme='graphite'] .chk__box {
+  background: #17181b;
+}
+[data-theme='graphite'] .suggest {
+  background: linear-gradient(180deg, #1b1c20 0%, #141517 100%);
+}
+
+/* Launch tlačítka → grafitové vyvýšené pilulky. */
+[data-theme='graphite'] .side-launch--clone-hero {
+  background: linear-gradient(180deg, #26272c 0%, #1a1b1e 100%);
+  color: var(--text);
+}
+[data-theme='graphite'] .side-launch--clone-hero:hover:not(:disabled) {
+  background: linear-gradient(180deg, #2d2e33 0%, #202126 100%);
+}
+[data-theme='graphite'] .side-launch--yarg {
+  background: linear-gradient(180deg, #1f2023 0%, #161719 100%);
+  color: var(--text-dim);
+}
+[data-theme='graphite'] .side-launch--yarg:hover:not(:disabled) {
+  background: linear-gradient(180deg, #26272b 0%, #1b1c1f 100%);
+  color: var(--text);
+}
+
+/* Primární tlačítka → světlá pilulka s tmavým textem (typický „graphite" tah). */
+[data-theme='graphite'] .titlebar__library,
+[data-theme='graphite'] .searchbar__go,
+[data-theme='graphite'] .dl-btn,
+[data-theme='graphite'] .btn-primary,
+[data-theme='graphite'] .batchbar__dl,
+[data-theme='graphite'] .pgnum--active {
+  background: linear-gradient(180deg, #f3f3f6 0%, #d4d4d8 100%);
+  color: #131315;
+}
+[data-theme='graphite'] .titlebar__library:hover,
+[data-theme='graphite'] .searchbar__go:hover,
+[data-theme='graphite'] .dl-btn:hover,
+[data-theme='graphite'] .btn-primary:hover,
+[data-theme='graphite'] .batchbar__dl:hover,
+[data-theme='graphite'] .pgnum--active:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #dcdce0 100%);
+  color: #131315;
+}
+[data-theme='graphite'] .titlebar__library:active,
+[data-theme='graphite'] .searchbar__go:active,
+[data-theme='graphite'] .dl-btn:active,
+[data-theme='graphite'] .batchbar__dl:active {
+  background: linear-gradient(180deg, #d8d8dc 0%, #c2c2c8 100%);
+}
+
+/* Modré textové tinty → světle šedá. */
+[data-theme='graphite'] .badge--native,
+[data-theme='graphite'] .chk--selectall .chk__label,
+[data-theme='graphite'] .filterchip,
+[data-theme='graphite'] .side-update__result--available,
+[data-theme='graphite'] .rec-hint {
+  color: #cfcfd6;
+}
+
+/* Titulek „Manager" v grafitu neutrálně šedý (ne modrošedý). */
+[data-theme='graphite'] .brand-w2 {
+  color: #9a9aa1;
+}
+
+/* ── Přepínač motivu v Nastavení (funguje v obou motivech) ── */
+.theme-picker {
+  display: flex;
+  gap: 10px;
+}
+.theme-opt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.theme-opt:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+.theme-opt--on {
+  color: var(--text);
+  border-color: rgba(var(--accent-rgb), 0.55);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+.theme-swatch {
+  width: 34px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.theme-swatch--navy {
+  background: linear-gradient(135deg, #3d5ed6 0%, #0b142b 70%);
+}
+.theme-swatch--graphite {
+  background: linear-gradient(135deg, #2a2b30 0%, #0c0c0e 70%);
+}
+
+/* Sekundární tlačítko „Open store / Get on MEGA" drží outline i v grafitu
+   (grafitový primární override na .dl-btn by ho jinak udělal světlé). */
+[data-theme='graphite'] .dl-btn--store {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+}
+[data-theme='graphite'] .dl-btn--store:hover {
+  background: var(--panel-hover);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* Popup plochy (dropdowny, refine, ⋮ menu, kontext. menu, lib dialog) měly navy. */
+[data-theme='graphite'] .dd__menu,
+[data-theme='graphite'] .refine__panel,
+[data-theme='graphite'] .rowmenu__menu,
+[data-theme='graphite'] .ctxmenu,
+[data-theme='graphite'] .lib__dialog {
+  background: #1b1c20;
+}
+
+/* Vybraná položka dropdownu a zaškrtnutý checkbox mají v grafitu SVĚTLÉ pozadí
+   (--accent-grad) → text/fajfka musí být TMAVÁ, jinak bílá na bílé zmizí. */
+[data-theme='graphite'] .dd__item--sel,
+[data-theme='graphite'] .chk input:checked + .chk__box {
+  color: #131315;
+}
+/* Hotkey checkbox (.check) používá fajfku z border: solid #fff → v grafitu
+   na světlém boxu zmizí; přebarvíme ji na tmavou. */
+[data-theme='graphite'] .check input[type='checkbox']:checked::after {
+  border-color: #131315;
+}
+
+/* Aktivní „Refine" toggle a jeho tečka: světlé --accent-grad pozadí → tmavý
+   obsah (jinak bílá na bílé zmizí). */
+[data-theme='graphite'] .refine__toggle--on {
+  color: #131315;
+}
+[data-theme='graphite'] .refine__toggle--on .refine__dot {
+  background: #131315;
+  box-shadow: none;
+}
+/* Filter-chip „×" na hover má světlé pozadí (--accent-2) → tmavý křížek. */
+[data-theme='graphite'] .filterchip__x:hover {
+  color: #131315;
+}
+
+/* Refine inputy: jednoznačně kontrastní tmavé pole + jemný focus (ne oslepivě
+   bílý okraj z var(--accent), který u malého inputu vypadá jako bílý box). */
+[data-theme='graphite'] .refine__field input {
+  background: #0f0f11;
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+}
+[data-theme='graphite'] .refine__field input:focus {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Tlačítko v update kartě → světlá pilulka (jako ostatní primární). „Ready"
+   stav zůstává zelený (status). */
+[data-theme='graphite'] .side-update-card__btn {
+  background: linear-gradient(180deg, #f3f3f6 0%, #d4d4d8 100%);
+  color: #131315;
+}
+[data-theme='graphite'] .side-update-card__btn:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #dcdce0 100%);
+  color: #131315;
+}
+[data-theme='graphite'] .side-update-card--ready .side-update-card__btn {
+  background: #22a883;
+  color: #fff;
+}
+[data-theme='graphite'] .side-update-card--ready .side-update-card__btn:hover {
+  background: #27bd92;
+}
+
+/* ============================================================
+   GRAFIT — „vyrytý" / soft-3D vzhled (jen grafit).
+   Vyvýšené prvky: světlá horní hrana + měkký stín dolů.
+   Zapuštěné (inputy): vnitřní stín. Stisk: zatlačení dovnitř.
+   Flat pravidla mají box-shadow:none !important → přebíjíme !important.
+   ============================================================ */
+
+/* Tmavá tlačítka (ikonová, sekundární, pager, dropdowny, check-for-updates). */
+[data-theme='graphite'] .titlebar__btn,
+[data-theme='graphite'] .btn-secondary,
+[data-theme='graphite'] .pgbtn,
+[data-theme='graphite'] .pgnum:not(.pgnum--active),
+[data-theme='graphite'] .dd__btn,
+[data-theme='graphite'] .side-update,
+[data-theme='graphite'] .theme-opt {
+  background: linear-gradient(180deg, #26272c 0%, #191a1d 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 2px rgba(0, 0, 0, 0.55),
+    0 5px 12px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 0, 0, 0.4) !important;
+}
+[data-theme='graphite'] .titlebar__btn:hover,
+[data-theme='graphite'] .btn-secondary:hover,
+[data-theme='graphite'] .pgbtn:hover:not(:disabled),
+[data-theme='graphite'] .pgnum:hover:not(.pgnum--active),
+[data-theme='graphite'] .dd__btn:hover:not(:disabled),
+[data-theme='graphite'] .side-update:hover:not(:disabled),
+[data-theme='graphite'] .theme-opt:hover {
+  background: linear-gradient(180deg, #2e2f34 0%, #202126 100%) !important;
+}
+/* Stisk = zatlačení dovnitř (engraved). */
+[data-theme='graphite'] .titlebar__btn:active,
+[data-theme='graphite'] .btn-secondary:active,
+[data-theme='graphite'] .pgbtn:active,
+[data-theme='graphite'] .dd__btn:active {
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Světlé primární pilulky — vyvýšené s horním leskem. */
+[data-theme='graphite'] .titlebar__library,
+[data-theme='graphite'] .searchbar__go,
+[data-theme='graphite'] .dl-btn:not(.dl-btn--store),
+[data-theme='graphite'] .btn-primary,
+[data-theme='graphite'] .batchbar__dl,
+[data-theme='graphite'] .pgnum--active,
+[data-theme='graphite'] .side-update-card__btn {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), inset 0 -2px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.5), 0 5px 14px rgba(0, 0, 0, 0.4) !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+[data-theme='graphite'] .titlebar__library:active,
+[data-theme='graphite'] .searchbar__go:active,
+[data-theme='graphite'] .dl-btn:active,
+[data-theme='graphite'] .batchbar__dl:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Launch tlačítka — výraznější vyvýšení. */
+[data-theme='graphite'] .side-launch {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* Vybraná položka v sidebaru + klouzavý indikátor — jemně vyvýšené. */
+[data-theme='graphite'] .side-indicator {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(180deg, #2a2b30 0%, #1d1e22 100%);
+}
+
+/* Zapuštěné vstupy (search, pole v nastavení, difficulty selecty) — vyryté. */
+[data-theme='graphite'] .content .searchbar__row--input,
+[data-theme='graphite'] .field input,
+[data-theme='graphite'] .field__row button {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Album art + instrument/exact kolečka a checkbox — jemná vrytá hloubka. */
+[data-theme='graphite'] .song__art,
+[data-theme='graphite'] .chk__box,
+[data-theme='graphite'] .instbtn__circle {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Jemně „vyryté" popisky (deboss) + nadpisy modalů. */
+[data-theme='graphite'] .side-label,
+[data-theme='graphite'] .fgroup__label,
+[data-theme='graphite'] .filterbar__label,
+[data-theme='graphite'] .modal__head h2 {
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Běžící hra: zelené pozadí + zelený obíhající okraj i v grafitu (grafitový
+   override .side-launch--clone-hero/yarg by jinak zelené pozadí přebil). */
+[data-theme='graphite'] .side-launch--running {
+  background: linear-gradient(135deg, #1f9a5f 0%, #0b3f28 100%);
+  color: #fff;
+}
+[data-theme='graphite'] .side-launch--running:hover:not(:disabled) {
+  background: linear-gradient(135deg, #24a869 0%, #0e4a30 100%);
+}
+
+/* ── „In library" badge = klikací (odhal složku) + popover pro duplikáty ── */
+.owned-wrap {
+  position: relative;
+  display: inline-flex;
+}
+/* Badge je teď <button> — sjednotit s vzhledem span badge + naznačit klikatelnost. */
+button.badge--owned {
+  /* JEN font-family — `font: inherit` (shorthand) resetoval i font-size z .badge
+     (11px) na zděděných ~13px, čímž badge nabobtnal proti sourozencům. */
+  font-family: inherit;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: border-color 0.14s, color 0.14s, background 0.14s;
+}
+button.badge--owned:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+.libpop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 70;
+  min-width: 220px;
+  max-width: 360px;
+  padding: 6px;
+  background: var(--bg-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: suggestItemIn 0.16s ease-out;
+}
+.libpop__head {
+  font-size: 11px;
+  color: var(--text-faint);
+  padding: 6px 8px 4px;
+}
+.libpop__item {
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 12.5px;
+  padding: 7px 9px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.libpop__item:hover {
+  background: var(--panel-hover);
+}
+
+/* ── Launcher bez cesty k exe (nelze spustit) ──
+   Ztlumené + varovná ikona vpravo. Opacity funguje přes jakýkoli gradient/motiv,
+   takže netřeba přebíjet pozadí. Klik otevře Nastavení (nastavit cestu). */
+.side-launch--missing {
+  opacity: 0.5;
+}
+.side-launch--missing:hover:not(:disabled) {
+  opacity: 0.72;
+}
+.side-launch__warn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  color: var(--warn);
+  flex-shrink: 0;
+}
+
+/* ── Library Manager: banner „N kopií" (duplikáty z „In library") ── */
+.lib__reveal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 18px 0;
+  padding: 9px 12px;
+  border-radius: var(--r-md);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+}
+.lib__reveal-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.lib__reveal-chip {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+.lib__reveal-chip:hover {
+  background: var(--panel-hover);
+  color: var(--text);
+}
+.lib__reveal-chip--on {
+  background: rgba(var(--accent-rgb), 0.2);
+  border-color: rgba(var(--accent-rgb), 0.55);
+  color: var(--text);
+}
+
+/* ── „Vyryté" rýhy (emboss) místo světlých linek ──
+   Řádky tabulky: tmavá čára (border-bottom var(--tline)) + světlý „lip" pod ní
+   = groove zaříznutý do plochy. Poslední řádek bez lipu (ať to nesvítí u dna). */
+[data-theme='graphite'] .results--table .song {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+[data-theme='graphite'] .results--table .song:last-child {
+  box-shadow: none;
+}
+/* Svislé oddělovače v panelu filtrů taky jako tmavá rýha se světlým lipem. */
+[data-theme='graphite'] .filterbar .fgroup + .fgroup {
+  border-left-color: rgba(0, 0, 0, 0.42);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.03);
 }

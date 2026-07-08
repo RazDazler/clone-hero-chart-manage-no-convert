@@ -45,6 +45,9 @@ export type IconName =
   | 'note'
   | 'check'
   | 'filter'
+  | 'play'
+  | 'pause'
+  | 'previewOff'
 
 // Obsah jednotlivých ikon (viewBox 0 0 24 24). Stroke dědí currentColor.
 const PATHS: Record<IconName, JSX.Element> = {
@@ -220,6 +223,20 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M9 18V6l9-2v10" />
       <circle cx="6.5" cy="18" r="2.4" fill="currentColor" stroke="none" />
       <circle cx="15.5" cy="14" r="2.4" fill="currentColor" stroke="none" />
+    </>
+  ),
+  play: <polygon points="7 4 20 12 7 20 7 4" fill="currentColor" stroke="none" />,
+  pause: (
+    <>
+      <rect x="6.5" y="5" width="3.6" height="14" rx="1.2" fill="currentColor" stroke="none" />
+      <rect x="13.9" y="5" width="3.6" height="14" rx="1.2" fill="currentColor" stroke="none" />
+    </>
+  ),
+  // „Bez ukázky" – přeškrtnutý kruh (univerzální „není k dispozici").
+  previewOff: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <line x1="5.6" y1="5.6" x2="18.4" y2="18.4" />
     </>
   )
 }

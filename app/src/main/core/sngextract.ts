@@ -68,6 +68,9 @@ export async function extractSng(
       if (settled) return
       settled = true
       clearTimeout(timer)
+      // Zavři zdrojový read stream, ať se při timeout/chybě neleakuje file handle
+      // (write stream aktuálního souboru dobíhá přes pipeline a uzavře se sám).
+      nodeStream.destroy()
       if (err) reject(err instanceof Error ? err : new Error(String(err)))
       else resolve()
     }

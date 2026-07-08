@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AppConfig, ReminderPosition, UpdateCheckResult } from '../../../shared/types'
+import type { AppConfig, ReminderPosition } from '../../../shared/types'
 import { useStore } from '../store'
 import { HotkeyInput } from './HotkeyInput'
 import { Icon } from './Icon'
@@ -75,11 +75,12 @@ export function Settings(): JSX.Element | null {
     path: string | null
     autoDetected: boolean
   } | null>(null)
-  const [version, setVersion] = useState('')
-  // 'idle' | 'checking' | výsledek kontroly aktualizací.
-  const [checkState, setCheckState] = useState<'idle' | 'checking' | UpdateCheckResult>('idle')
-
-  useEffect(() => setDraft(config), [config])
+  // Reset rozdělaných změn na uložený config při KAŽDÉM otevření okna (i po
+  // změně configu). Komponenta se nemountuje znovu (jen vrací null), takže bez
+  // tohohle by neuložené úpravy po Cancel/kliku mimo přežily do dalšího otevření.
+  useEffect(() => {
+    if (show) setDraft(config)
+  }, [show, config])
 
   // Při otevření zjistíme, jestli CH.exe + YARG.exe auto-detekce našly cesty.
   useEffect(() => {
@@ -87,22 +88,6 @@ export function Settings(): JSX.Element | null {
     void window.api.chExeStatus().then(setExeStatus)
     void window.api.yargExeStatus().then(setYargStatus)
   }, [show, draft?.songsDir, draft?.chExePath, draft?.yargExePath])
-
-  // Verze pro sekci Updates; při každém otevření resetuj výsledek kontroly.
-  useEffect(() => {
-    if (!show) return
-    void window.api.appVersion().then(setVersion)
-    setCheckState('idle')
-  }, [show])
-
-  const checkUpdates = async (): Promise<void> => {
-    setCheckState('checking')
-    try {
-      setCheckState(await window.api.checkForUpdates())
-    } catch {
-      setCheckState({ status: 'error' })
-    }
-  }
 
   // UI scale: clamp 0.7–1.6, živý náhled přes IPC (uloží se až na Save).
   const setScale = (next: number): void => {
@@ -348,51 +333,6 @@ export function Settings(): JSX.Element | null {
               Stacks on top of Windows display scaling. Preview updates live; click Save to keep it.
             </p>
           </fieldset>
-
-          <fieldset className="field">
-            <span>Updates</span>
-            <div className="about">
-              <span className="about__ver">
-                Clone Hero Chart Manager {version ? <strong>v{version}</strong> : null}
-              </span>
-              <button
-                type="button"
-                className="btn-secondary about__btn"
-                onClick={checkUpdates}
-                disabled={checkState === 'checking'}
-              >
-                {checkState === 'checking' ? 'Checking…' : 'Check for updates'}
-              </button>
-            </div>
-            {typeof checkState === 'object' ? (
-              <p className={`field__hint about__result about__result--${checkState.status}`}>
-                {checkState.status === 'uptodate'
-                  ? "You're on the latest version."
-                  : checkState.status === 'available'
-                    ? checkState.canAutoUpdate
-                      ? `Version v${checkState.version} is available. Close Settings to download it from the banner.`
-                      : `Version v${checkState.version} is available.`
-                    : "Couldn't check for updates right now. Check your connection or view releases on GitHub."}
-                {checkState.status === 'available' && !checkState.canAutoUpdate && checkState.url ? (
-                  <>
-                    {' '}
-                    <button
-                      type="button"
-                      className="linkbtn"
-                      onClick={() => checkState.url && window.api.openExternal(checkState.url)}
-                    >
-                      View release
-                    </button>
-                  </>
-                ) : null}
-              </p>
-            ) : (
-              <p className="field__hint">
-                Check for a new version without restarting. The installer build updates itself; the
-                portable build links you to the download.
-              </p>
-            )}
-          </fieldset>
         </div>
 
         <div className="modal__foot">
@@ -402,7 +342,13 @@ export function Settings(): JSX.Element | null {
           <button
             className="btn-primary"
             onClick={async () => {
-              await saveConfig(draft)
+              // Pojistka: „Results per page" srovnej do 5–100 (min/max u inputu jsou
+              // jen nápověda, ruční zápis je obejde).
+              const clean: AppConfig = {
+                ...draft,
+                recordsPerPage: Math.min(100, Math.max(5, Number(draft.recordsPerPage) || 25))
+              }
+              await saveConfig(clean)
               setShowSettings(false)
             }}
           >

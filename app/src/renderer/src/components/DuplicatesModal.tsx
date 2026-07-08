@@ -95,8 +95,8 @@ export function DuplicatesModal({
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Rel kopie, jejíž detail je právě rozbalený (jen jeden naráz).
-  const [detailFor, setDetailFor] = useState<string | null>(null)
+  // Rely kopií s rozbaleným detailem — víc naráz (kvůli porovnání kopií vedle sebe).
+  const [detailOpen, setDetailOpen] = useState<Set<string>>(new Set())
   // Potvrzení poslední akce („Moved N to …") — zobrazuje se NAD patičkou, mimo
   // scroll, stejně jako chyba. U 92 skupin by hláška na konci seznamu nebyla vidět.
   const [notice, setNotice] = useState<string | null>(null)
@@ -104,6 +104,7 @@ export function DuplicatesModal({
   const scan = async (): Promise<void> => {
     setGroups(null)
     setChecked(new Set())
+    setDetailOpen(new Set())
     setError(null)
     try {
       setGroups(await window.api.libFindDuplicates())
@@ -120,6 +121,15 @@ export function DuplicatesModal({
     const next = new Set(checked)
     next.has(rel) ? next.delete(rel) : next.add(rel)
     setChecked(next)
+  }
+
+  // Rozbalení detailu kopie — každá kopie nezávisle (víc otevřených naráz).
+  const toggleDetail = (rel: string): void => {
+    setDetailOpen((cur) => {
+      const next = new Set(cur)
+      next.has(rel) ? next.delete(rel) : next.add(rel)
+      return next
+    })
   }
 
   const identical = (groups ?? []).filter((g) => g.reason === 'identical')
@@ -191,7 +201,12 @@ export function DuplicatesModal({
       {g.songs.map((s) => (
         <div key={s.rel} className="dup__copy">
           <label className="dup__row">
-            <input type="checkbox" checked={checked.has(s.rel)} onChange={() => toggle(s.rel)} />
+            <span className="chk">
+              <input type="checkbox" checked={checked.has(s.rel)} onChange={() => toggle(s.rel)} />
+              <span className="chk__box">
+                <Icon name="check" size={12} />
+              </span>
+            </span>
             <span className="dup__rowmain">
               {/* RichText i na názvu složky — na Linuxu smí složka obsahovat
                   <color=…> tagy v názvu (na Windows ne), jinak by se ukázaly syrově. */}
@@ -207,19 +222,19 @@ export function DuplicatesModal({
             ) : null}
             <button
               type="button"
-              className={`dup__openbtn ${detailFor === s.rel ? 'dup__openbtn--on' : ''}`}
+              className={`dup__openbtn ${detailOpen.has(s.rel) ? 'dup__openbtn--on' : ''}`}
               title="Show this copy's details to compare (album, difficulties, length)"
               onClick={(e) => {
                 // Řádek je <label> — bez preventDefault by klik zaškrtl checkbox.
                 e.preventDefault()
                 e.stopPropagation()
-                setDetailFor((cur) => (cur === s.rel ? null : s.rel))
+                toggleDetail(s.rel)
               }}
             >
               <Icon name="info" size={15} />
             </button>
           </label>
-          {detailFor === s.rel ? <CopyDetail rel={s.rel} /> : null}
+          {detailOpen.has(s.rel) ? <CopyDetail rel={s.rel} /> : null}
         </div>
       ))}
     </div>

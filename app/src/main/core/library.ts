@@ -1,7 +1,7 @@
 // Instalace stažených/zkonvertovaných písní do knihovny Clone Hero (Songs).
 
 import { existsSync, promises as fsp, readdirSync, statSync } from 'fs'
-import { basename, join, resolve, sep } from 'path'
+import { basename, join, relative, resolve, sep } from 'path'
 import { getConfig } from './config'
 import { invalidateLibraryIndex } from './playlists'
 import type { SongResult } from '../../shared/types'
@@ -147,9 +147,23 @@ async function readIniMetaAsync(folder: string): Promise<{ artist: string; title
  * knihoven (tisíce písní) trval synchronní sken ~0,5–1 s a okno na tu dobu při
  * startu zamrzlo. Async čtení yielduje mezi FS operacemi, takže UI zůstane svižné.
  */
-export async function ownedSongKeys(): Promise<string[]> {
+// ── Index knihovny: klíč (artist|title) → RELATIVNÍ cesty (k Songs) ───────
+// Jeden sken slouží jak nápovědě „už mám" (klíče), tak funkci „odhal ve složce"
+// (klik na In library → cesta/y). Krátká cache + invalidace po instalaci: u
+// velkých knihoven je sken drahý, ale opakovaný badge/klik se trefí do cache.
+let ownedIndexCache: { at: number; map: Map<string, string[]> } | null = null
+const OWNED_TTL_MS = 60_000
+
+async function buildOwnedIndex(): Promise<Map<string, string[]>> {
   const songsDir = getConfig().songsDir
-  const keys = new Set<string>()
+  const map = new Map<string, string[]>()
+  const add = (key: string, abs: string): void => {
+    if (!key) return
+    const rel = relative(songsDir, abs) || basename(abs)
+    const arr = map.get(key)
+    if (arr) arr.push(rel)
+    else map.set(key, [rel])
+  }
   const walk = async (dir: string, depth: number): Promise<void> => {
     if (depth > 6) return
     let entries: import('fs').Dirent[]
@@ -161,7 +175,7 @@ export async function ownedSongKeys(): Promise<string[]> {
     // Je to složka písně? (song.ini / notes.chart / notes.mid) → do podsložek už nelez.
     if (entries.some((e) => e.isFile() && SONG_MARKERS.includes(e.name.toLowerCase()))) {
       const meta = (await readIniMetaAsync(dir)) ?? splitName(basename(dir))
-      if (meta.title) keys.add(normKey(meta.artist, meta.title))
+      if (meta.title) add(normKey(meta.artist, meta.title), dir)
       return
     }
     for (const e of entries) {
@@ -169,12 +183,45 @@ export async function ownedSongKeys(): Promise<string[]> {
       if (e.isDirectory()) await walk(full, depth + 1)
       else if (e.isFile() && e.name.toLowerCase().endsWith('.sng')) {
         const { artist, title } = splitName(e.name.replace(/\.sng$/i, ''))
-        if (title) keys.add(normKey(artist, title))
+        if (title) add(normKey(artist, title), full)
       }
     }
   }
   await walk(songsDir, 0)
-  return [...keys]
+  return map
+}
+
+async function getOwnedIndex(): Promise<Map<string, string[]>> {
+  if (ownedIndexCache && Date.now() - ownedIndexCache.at < OWNED_TTL_MS) return ownedIndexCache.map
+  const map = await buildOwnedIndex()
+  ownedIndexCache = { at: Date.now(), map }
+  return map
+}
+
+/** Zneplatní cache indexu knihovny (po instalaci / změně Songs složky). */
+export function invalidateOwnedIndex(): void {
+  ownedIndexCache = null
+}
+
+/**
+ * Normalizované klíče (artist|title) všech písní v knihovně Songs — z názvů složek
+ * a ze `song.ini` (rekurzivně, i podsložky) + volných .sng. Slouží jako NÁPOVĚDA
+ * „tohle už asi máš" ve výsledcích hledání. Match není 100% (různé zápisy názvů).
+ *
+ * **Asynchronně (fs.promises), aby to NEBLOKOVALO main event loop** — u velkých
+ * knihoven trval synchronní sken ~0,5–1 s a okno na tu dobu při startu zamrzlo.
+ */
+export async function ownedSongKeys(): Promise<string[]> {
+  return [...(await getOwnedIndex()).keys()]
+}
+
+/**
+ * Relativní cesty (k Songs) všech položek knihovny odpovídajících dané písni
+ * (artist|title). Víc než jedna = duplikáty; prázdné pole = není v knihovně.
+ * Používá „In library" badge k odhalení složky v Průzkumníku.
+ */
+export async function ownedFolders(artist: string, title: string): Promise<string[]> {
+  return (await getOwnedIndex()).get(normKey(artist, title)) ?? []
 }
 
 export function sanitize(name: string): string {
@@ -271,6 +318,7 @@ export async function install(
       installed.push(dest)
     }
     invalidateLibraryIndex() // nové písně musí být vidět v setlist manageru hned
+    invalidateOwnedIndex() // a taky v „už mám / odhal ve složce"
     return { installedPaths: installed }
   }
 
@@ -305,5 +353,6 @@ export async function install(
     installed.push(dest)
   }
   invalidateLibraryIndex()
+  invalidateOwnedIndex()
   return { installedPaths: installed }
 }

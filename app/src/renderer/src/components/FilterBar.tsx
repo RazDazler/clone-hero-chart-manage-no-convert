@@ -59,66 +59,75 @@ export function FilterBar(): JSX.Element {
 
   return (
     <div className="filterbar">
-      <span className="filterbar__label">Instruments:</span>
-      <div className="instbtns">
-        {INSTRUMENTS.map((inst) => {
-          const active = filters.includes(inst.id)
-          return (
-            <button
-              key={inst.id}
-              className={`instbtn ${active ? 'instbtn--active' : ''}`}
-              title={`Only songs with: ${inst.label}`}
-              onClick={() => toggle(inst.id)}
-              style={
-                {
-                  '--inst-color': inst.color
-                } as React.CSSProperties
-              }
-            >
-              <span className="instbtn__circle">
-                <Icon name={inst.icon} size={28} color={inst.color} />
-              </span>
-              <span className="instbtn__label">{inst.label}</span>
-            </button>
-          )
-        })}
+      <div className="fgroup fgroup--instruments">
+        <div className="fgroup__label">Instruments</div>
+        <div className="instbtns">
+          {INSTRUMENTS.map((inst) => {
+            const active = filters.includes(inst.id)
+            return (
+              <button
+                key={inst.id}
+                className={`instbtn ${active ? 'instbtn--active' : ''}`}
+                title={`Only songs with: ${inst.label}`}
+                onClick={() => toggle(inst.id)}
+                style={
+                  {
+                    '--inst-color': inst.color
+                  } as React.CSSProperties
+                }
+              >
+                <span className="instbtn__circle">
+                  <Icon name={inst.icon} size={28} color={inst.color} />
+                </span>
+                <span className="instbtn__label">{inst.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <span className="filterbar__diff">
-        <span className="filterbar__label">Difficulty</span>
-        <span
-          className="info"
-          title={
-            anyInstrument
-              ? 'Difficulty tier 0 (easiest) to 6 (hardest). With no instrument selected, shows songs where ANY instrument falls within this range. Select instruments above to target them specifically.'
-              : 'Filters the selected instruments by their difficulty tier (0 = easiest, 6 = hardest). Only songs whose selected instruments fall within this MIN–MAX range are shown.'
-          }
-        >
-          <Icon name="info" size={13} />
-        </span>
-        <span className="diffpick">
-          <span className="diffpick__cap">min</span>
-          <Dropdown
-            value={diffMin}
-            options={LEVELS}
-            ariaLabel="Minimum difficulty"
-            onChange={(v) => setDiffRange(v, diffMax)}
-          />
-        </span>
-        <span className="filterbar__dash">–</span>
-        <span className="diffpick">
-          <span className="diffpick__cap">max</span>
-          <Dropdown
-            value={diffMax}
-            options={LEVELS}
-            ariaLabel="Maximum difficulty"
-            onChange={(v) => setDiffRange(diffMin, v)}
-          />
-        </span>
+      <div className="fgroup fgroup--difficulty">
+        <div className="fgroup__label">
+          Difficulty
+          <span
+            className="info"
+            title={
+              anyInstrument
+                ? 'Difficulty tier 0 (easiest) to 6 (hardest). With no instrument selected, shows songs where ANY instrument falls within this range. Select instruments to target them specifically.'
+                : 'Filters the selected instruments by their difficulty tier (0 = easiest, 6 = hardest). Only songs whose selected instruments fall within this MIN–MAX range are shown.'
+            }
+          >
+            <Icon name="info" size={13} />
+          </span>
+        </div>
+        <div className="fgroup__row">
+          <span className="diffpick">
+            <span className="diffpick__cap">Min</span>
+            <Dropdown
+              value={diffMin}
+              options={LEVELS}
+              ariaLabel="Minimum difficulty"
+              onChange={(v) => setDiffRange(v, diffMax)}
+            />
+          </span>
+          <span className="diffpick">
+            <span className="diffpick__cap">Max</span>
+            <Dropdown
+              value={diffMax}
+              options={LEVELS}
+              ariaLabel="Maximum difficulty"
+              onChange={(v) => setDiffRange(diffMin, v)}
+            />
+          </span>
+        </div>
+      </div>
 
-        <span className="diffpick__cap diffpick__cap--or">exact</span>
-        <DifficultyDots disabled={false} />
-      </span>
+      <div className="fgroup fgroup--exact">
+        <div className="fgroup__label">Exact&nbsp;&nbsp;Difficulty</div>
+        <div className="fgroup__row fgroup__row--dots">
+          <DifficultyDots disabled={false} />
+        </div>
+      </div>
 
       <button
         type="button"
@@ -143,11 +152,15 @@ export function FilterBar(): JSX.Element {
         }}
         onDrop={handleDrop}
       >
-        <Icon name="download" size={18} />
-        <div className="dropzone__text">
-          <strong>Drop files or a folder, or click to browse</strong>
-          <span>.zip · .rar · .7z · .sng · CON · DTX</span>
-        </div>
+        <span className="dropzone__main">
+          <Icon name="download" size={20} />
+          <strong>
+            Drop files or a folder,
+            <br />
+            or click to browse
+          </strong>
+        </span>
+        <span className="dropzone__ext">.zip · .rar · .7z · .sng · .CON · .DTX</span>
       </button>
     </div>
   )

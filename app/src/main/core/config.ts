@@ -124,7 +124,9 @@ function defaults(): AppConfig {
     chExePath: '', // auto-detekce z songsDir
     yargExePath: '', // auto-detekce v běžných YARG instalech
     recordsPerPage: 25,
-    uiScale: 1,
+    // 1.2 = ověřené ideální rozpoložení na 4K @ 125 % Windows scale (defaultně
+    // pro všechny; kdo má v configu uloženou vlastní hodnotu, tomu zůstane).
+    uiScale: 1.2,
     hotkeys: {
       // Show / hide window — Ctrl+I (rychlý "Insert/Invoke" toggle, ergonomický
       // pro pravou ruku na klávesnici; nepřekrývá běžné herní bindings v CH).

@@ -1,29 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Database, RhythmVerseSystem, SongResult } from '../../../shared/types'
+import type { SongResult } from '../../../shared/types'
 import { useStore } from '../store'
 import { Icon } from './Icon'
-import { Segmented } from './Segmented'
 
-const DATABASES: { id: Database; label: string; hint: string }[] = [
-  {
-    id: 'rhythmverse',
-    label: 'RhythmVerse',
-    hint: 'Largest catalogue — CH, Phase Shift and Rock Band CON'
-  },
-  {
-    id: 'enchor',
-    label: 'Chorus Encore',
-    hint: 'Curated Clone Hero charts hosted directly as .sng files'
-  },
-  { id: 'both', label: 'Both', hint: 'Merged & de-duplicated results from both sources' }
-]
-
-const SYSTEMS: { id: RhythmVerseSystem; label: string; hint: string }[] = [
-  { id: 'ch', label: 'Clone Hero', hint: 'Native charts (no conversion)' },
-  { id: 'ps', label: 'Phase Shift', hint: 'Read by Clone Hero directly' },
-  { id: 'rb3', label: 'Rock Band', hint: 'CON → converted to CH' },
-  { id: 'all', label: 'All', hint: 'All formats' }
-]
+// Pozn. (redesign v2): Database/System přepínače žijí v levém Sidebaru.
+// SearchBar je jen vyhledávací pole + našeptávač + tlačítko Search.
 
 const SUGGEST_LIMIT = 7
 const SUGGEST_DEBOUNCE_MS = 220
@@ -57,8 +38,6 @@ export function SearchBar(): JSX.Element {
   const system = useStore((s) => s.system)
   const loading = useStore((s) => s.loading)
   const setQuery = useStore((s) => s.setQuery)
-  const setDatabase = useStore((s) => s.setDatabase)
-  const setSystem = useStore((s) => s.setSystem)
   const doSearch = useStore((s) => s.doSearch)
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -68,10 +47,9 @@ export function SearchBar(): JSX.Element {
   const [suggestTotal, setSuggestTotal] = useState(0)
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [suggestLoading, setSuggestLoading] = useState(false)
+  const [suggestError, setSuggestError] = useState(false)
   const [hoverIdx, setHoverIdx] = useState(-1)
   const lastReqId = useRef(0)
-
-  const showSystems = database !== 'enchor'
 
   // Debounced fetch — zruš starší requesty přes rostoucí req-id.
   useEffect(() => {
@@ -86,16 +64,19 @@ export function SearchBar(): JSX.Element {
     }
     const myId = ++lastReqId.current
     setSuggestLoading(true)
+    setSuggestError(false)
     const t = setTimeout(async () => {
       try {
         const res = await window.api.search(q, 1, SUGGEST_LIMIT, system, database)
         if (myId !== lastReqId.current) return // overtaken
         setSuggest(res.songs.slice(0, SUGGEST_LIMIT))
         setSuggestTotal(res.totalFiltered)
+        setSuggestError(false)
       } catch {
         if (myId !== lastReqId.current) return
         setSuggest([])
         setSuggestTotal(0)
+        setSuggestError(true) // odlišit selhání od legitimního „nic nenalezeno"
       } finally {
         if (myId === lastReqId.current) setSuggestLoading(false)
       }
@@ -162,36 +143,7 @@ export function SearchBar(): JSX.Element {
     (suggestLoading || suggest.length > 0 || suggestTotal === 0)
 
   return (
-    <div className="searchbar searchbar--stacked">
-      <div className="searchbar__row">
-        <span className="searchbar__sublabel">Database</span>
-        <Segmented
-          variant="db"
-          options={DATABASES}
-          value={database}
-          onChange={(id) => {
-            setDatabase(id)
-            // Vždy re-search: s prázdným dotazem doSearch výsledky buď vyčistí
-            // (RV/Both), nebo přepne na browse-all (Encore) — nikdy nenechá
-            // zatuchlé výsledky z předchozí databáze.
-            void doSearch(1)
-          }}
-        />
-        {showSystems ? (
-          <>
-            <span className="searchbar__sublabel">System</span>
-            <Segmented
-              variant="system"
-              options={SYSTEMS}
-              value={system}
-              onChange={(id) => {
-                setSystem(id)
-                if (query.trim()) void doSearch(1)
-              }}
-            />
-          </>
-        ) : null}
-      </div>
+    <div className="searchbar">
       <div className="searchbar__row searchbar__row--input">
         <div className="searchbar__input-wrap" ref={wrapRef}>
           <div className="searchbar__input">
@@ -240,7 +192,9 @@ export function SearchBar(): JSX.Element {
               </div>
               <div className="suggest__list">
                 {suggest.length === 0 && !suggestLoading ? (
-                  <div className="suggest__empty">Nothing found.</div>
+                  <div className="suggest__empty">
+                    {suggestError ? "Couldn't load suggestions." : 'Nothing found.'}
+                  </div>
                 ) : (
                   suggest.map((song, i) => (
                     <button

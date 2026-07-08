@@ -8,8 +8,10 @@ import { getConfig } from './core/config'
 import { bringGameToFront, runningGame } from './core/gamedetect'
 import { hideReminder, showReminder } from './reminder'
 
-/** Základní zoom UI (nad Windows DPI scalingem). Násobí se uživatelským uiScale. */
-const BASE_ZOOM = 1.15
+/** Základní zoom UI (nad Windows DPI scalingem). Násobí se uživatelským uiScale.
+ *  REDESIGN v2: 1.0 — CSS je autorované 1:1 v pixelech mockupu (okno 1500×1044),
+ *  žádné dodatečné zvětšování. */
+const BASE_ZOOM = 1.0
 
 /** Cesta k ikoně okna (v devu), pokud existuje. */
 function windowIcon(): string | undefined {
@@ -46,10 +48,13 @@ export function createOverlay(): BrowserWindow {
   // ten „odd" stav na malých HiDPI displejích (1080p @ 150 %): okno se otevřelo
   // širší než obrazovka. Clamp to řeší bez zmenšování UI.
   const dip = (css: number): number => Math.round(css * ZOOM)
-  const winW = Math.min(Math.max(dip(1304), Math.round(width * 0.7)), width)
-  const winH = Math.min(Math.max(dip(870), Math.round(height * 0.78)), height)
-  const minW = Math.min(dip(1026), width)
-  const minH = Math.min(dip(661), height)
+  // Okno se VŽDY otevírá v „design" velikosti mockupu (1500×1044 CSS px),
+  // jen clampnuté na pracovní plochu — na menších displejích se zmenší,
+  // ale na velkých se uměle nenafukuje.
+  const winW = Math.min(dip(1500), width)
+  const winH = Math.min(dip(1044), height)
+  const minW = Math.min(dip(1100), width)
+  const minH = Math.min(dip(700), height)
 
   const win = new BrowserWindow({
     title: 'Clone Hero Chart Manager',

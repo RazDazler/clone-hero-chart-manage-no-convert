@@ -15,6 +15,7 @@ import {
   removeSongsFromPlaylist,
   renamePlaylist
 } from './playlists'
+import { invalidateOwnedIndex } from './library'
 import { findDuplicates } from './duplicates'
 import type {
   DupGroup,
@@ -120,6 +121,8 @@ export function libRename(relItem: string, newName: string): void {
   const dest = safeAbs(join(parentRel, sanitizeName(newName)))
   if (existsSync(dest)) throw new Error('An item with that name already exists')
   renameSync(src, dest)
+  invalidateLibraryIndex()
+  invalidateOwnedIndex()
 }
 
 export async function libTrash(relItem: string): Promise<void> {
@@ -127,6 +130,7 @@ export async function libTrash(relItem: string): Promise<void> {
   if (abs === rootDir()) throw new Error('Cannot delete the Songs root')
   await shell.trashItem(abs)
   invalidateLibraryIndex()
+  invalidateOwnedIndex()
 }
 
 export function libMove(srcRelItem: string, destRelDir: string): void {
@@ -146,6 +150,7 @@ export function libMove(srcRelItem: string, destRelDir: string): void {
     void shell.trashItem(src)
   }
   invalidateLibraryIndex()
+  invalidateOwnedIndex()
 }
 
 /**
@@ -194,6 +199,7 @@ export function libMoveOut(relItems: string[], destAbsDir: string): void {
     }
   }
   invalidateLibraryIndex()
+  invalidateOwnedIndex()
 }
 
 export function libCopy(srcRelItem: string, destRelDir: string): void {
@@ -202,6 +208,7 @@ export function libCopy(srcRelItem: string, destRelDir: string): void {
   const dest = uniqueDest(destDir, basename(src))
   cpSync(src, dest, { recursive: true })
   invalidateLibraryIndex()
+  invalidateOwnedIndex()
 }
 
 export function libOpen(rel: string): void {

@@ -27,6 +27,9 @@ interface AppState {
   config: AppConfig | null
   showSettings: boolean
   showLibrary: boolean
+  /** Cíl pro „In library": relativní cesty (k Songs) kopií písně k odhalení v Library
+   *  Manageru. null = manager otevřen normálně (kořen). Víc cest = duplikáty. */
+  libraryReveal: string[] | null
   showWhatsNew: boolean
   /** Verze, ze které uživatel updatoval — changelog pak ukáže vše novější. null = ruční otevření (posledních N). */
   whatsNewSince: string | null
@@ -84,6 +87,16 @@ interface AppState {
   /** Dotaz měl víc stránek než strop — prohledán jen začátek (obří katalogy). */
   deepCapHit: boolean
 
+  // ── Zvuková ukázka (poslech před stažením) ───────────────────────────────
+  /** Klíč písně, jejíž ukázka je právě aktivní (načítá se / hraje). */
+  previewKey: string | null
+  previewState: 'idle' | 'loading' | 'playing' | 'unavailable' | 'error'
+  /** „Interpret - Název", co se reálně spárovalo (pro popisek). */
+  previewLabel: string | null
+  /** Přehraje / zastaví 30s ukázku dané písně (lazy — stáhne se až na klik). */
+  togglePreview: (song: SongResult) => Promise<void>
+  stopPreview: () => void
+
   setQuery: (q: string) => void
   setDatabase: (d: Database) => void
   setSystem: (s: RhythmVerseSystem) => void
@@ -99,6 +112,8 @@ interface AppState {
   setSelectedIndex: (i: number) => void
   setShowSettings: (v: boolean) => void
   setShowLibrary: (v: boolean) => void
+  /** Otevře Library Manager rovnou na dané písni (kopiích) a vybere ji. */
+  openLibraryAt: (rels: string[]) => void
   setShowWhatsNew: (v: boolean) => void
   /** Otevře „What's new". `since` = z jaké verze uživatel přišel (null/nezadáno = posledních N). */
   openWhatsNew: (since?: string | null) => void
@@ -208,6 +223,34 @@ let ownedReloadTimer: ReturnType<typeof setTimeout> | null = null
  */
 let searchSeq = 0
 
+// ── Přehrávač zvukových ukázek (jeden sdílený na celou appku) ──────────────
+// Jeden <Audio> element + cache blob URL podle klíče písně, ať se stejná ukázka
+// nestahuje dvakrát. Blob cache má strop (ukázka ~0,5 MB), starší se uvolní.
+let previewAudio: HTMLAudioElement | null = null
+const previewBlobCache = new Map<string, string>()
+/** Popisek „Interpret - Název" k ukázce (paralelně s blob cache), ať se při
+ *  přehrání z cache neztratí. */
+const previewLabelCache = new Map<string, string | null>()
+const PREVIEW_BLOB_MAX = 40
+/** Ukázky (hlavně iTunes) jsou hlasitě normalizované — přehráváme tišeji. */
+const PREVIEW_VOLUME = 0.5
+
+/** Přístup k sdílenému audio elementu (pro progress ring v aktivním řádku). */
+export function getPreviewAudioEl(): HTMLAudioElement | null {
+  return previewAudio
+}
+
+function stopPreviewAudio(): void {
+  if (previewAudio) {
+    previewAudio.pause()
+    try {
+      previewAudio.currentTime = 0
+    } catch {
+      /* některé stavy to nedovolí — nevadí */
+    }
+  }
+}
+
 export const useStore = create<AppState>((set, get) => {
   /** Aktivní klientské filtry, které server neumí (nástroj / obtížnost). */
   const hasClientFilters = (): boolean => {
@@ -225,6 +268,7 @@ export const useStore = create<AppState>((set, get) => {
    * souvisle za sebou (žádné poloprázdné stránky) a počty sedí.
    */
   const deepScan = async (): Promise<void> => {
+    get().stopPreview() // změna filtrů přebuduje výsledky → ať nehraje ukázka „naslepo"
     const { query, database, system, records } = get()
     if (!query.trim() && database !== 'enchor') {
       searchSeq++
@@ -242,7 +286,7 @@ export const useStore = create<AppState>((set, get) => {
       loading: true,
       error: null,
       page: 1,
-      selectedIndex: 0,
+      selectedIndex: -1,
       selectedKeys: []
     })
     try {
@@ -296,12 +340,13 @@ export const useStore = create<AppState>((set, get) => {
   totalFiltered: 0,
   loading: false,
   error: null,
-  selectedIndex: 0,
+  selectedIndex: -1,
   jobs: {},
   enqueuedKeys: {},
   config: null,
   showSettings: false,
   showLibrary: false,
+  libraryReveal: null,
   showWhatsNew: false,
   whatsNewSince: null,
   instrumentFilters: [],
@@ -329,6 +374,92 @@ export const useStore = create<AppState>((set, get) => {
   deepTotalPages: 1,
   deepLoading: false,
   deepCapHit: false,
+  previewKey: null,
+  previewState: 'idle',
+  previewLabel: null,
+
+  stopPreview: () => {
+    stopPreviewAudio()
+    set({ previewKey: null, previewState: 'idle', previewLabel: null })
+  },
+
+  togglePreview: async (song) => {
+    const key = song.key
+    const { previewKey, previewState } = get()
+
+    // Klik na tutéž (hrající/načítající) ukázku = zastavit.
+    if (previewKey === key && (previewState === 'playing' || previewState === 'loading')) {
+      get().stopPreview()
+      return
+    }
+
+    // Zastav cokoli, co zrovna hraje, a přepni cíl.
+    stopPreviewAudio()
+    set({ previewKey: key, previewState: 'loading', previewLabel: null })
+
+    const ensureAudio = (): HTMLAudioElement => {
+      if (!previewAudio) {
+        previewAudio = new Audio()
+        previewAudio.volume = PREVIEW_VOLUME
+        previewAudio.addEventListener('ended', () => {
+          // Doběhla-li stále aktivní ukázka, vrať tlačítko do „play".
+          if (get().previewState === 'playing') set({ previewState: 'idle' })
+        })
+        previewAudio.addEventListener('error', () => {
+          if (get().previewState === 'playing' || get().previewState === 'loading')
+            set({ previewState: 'error' })
+        })
+      }
+      return previewAudio
+    }
+
+    const play = (blobUrl: string, label: string | null): void => {
+      if (get().previewKey !== key) return // uživatel mezitím přepnul
+      const a = ensureAudio()
+      a.src = blobUrl
+      set({ previewState: 'playing', previewLabel: label })
+      void a.play().catch(() => {
+        if (get().previewKey === key) set({ previewState: 'error' })
+      })
+    }
+
+    // Už staženo? Přehraj z cache.
+    const cached = previewBlobCache.get(key)
+    if (cached) {
+      play(cached, previewLabelCache.get(key) ?? null)
+      return
+    }
+
+    try {
+      const res = await window.api.preview(song.artist, song.title)
+      if (get().previewKey !== key) return // přepnuto během stahování
+      if (!res.ok || !res.data) {
+        set({ previewState: 'unavailable' })
+        return
+      }
+      const blob = new Blob([res.data], { type: res.mime || 'audio/mpeg' })
+      const url = URL.createObjectURL(blob)
+      // Strop cache: uvolni nejstarší blob.
+      if (previewBlobCache.size >= PREVIEW_BLOB_MAX) {
+        const oldest = previewBlobCache.keys().next().value
+        if (oldest !== undefined) {
+          const oldUrl = previewBlobCache.get(oldest)
+          if (oldUrl) URL.revokeObjectURL(oldUrl)
+          previewBlobCache.delete(oldest)
+          previewLabelCache.delete(oldest)
+        }
+      }
+      previewBlobCache.set(key, url)
+      const label =
+        res.matchedArtist && res.matchedTitle
+          ? `${res.matchedArtist} - ${res.matchedTitle}`
+          : null
+      previewLabelCache.set(key, label)
+      play(url, label)
+    } catch {
+      if (get().previewKey === key) set({ previewState: 'error' })
+    }
+  },
 
   setQuery: (q) => {
     set({ query: q })
@@ -346,7 +477,7 @@ export const useStore = create<AppState>((set, get) => {
       instrumentFilters: s.instrumentFilters.includes(id)
         ? s.instrumentFilters.filter((x) => x !== id)
         : [...s.instrumentFilters, id],
-      selectedIndex: 0,
+      selectedIndex: -1,
       page: s.deep ? 1 : s.page
     }))
     syncDeepMode()
@@ -355,15 +486,15 @@ export const useStore = create<AppState>((set, get) => {
     set((s) => ({
       diffMin: Math.max(0, Math.min(6, Math.min(min, max))),
       diffMax: Math.max(0, Math.min(6, Math.max(min, max))),
-      selectedIndex: 0,
+      selectedIndex: -1,
       page: s.deep ? 1 : s.page
     }))
     syncDeepMode()
   },
-  setCharterFilter: (v) => set({ charterFilter: v, selectedIndex: 0 }),
-  setAlbumFilter: (v) => set({ albumFilter: v, selectedIndex: 0 }),
-  setYearFilter: (v) => set({ yearFilter: v, selectedIndex: 0 }),
-  setHideOwned: (v) => set({ hideOwned: v, selectedIndex: 0 }),
+  setCharterFilter: (v) => set({ charterFilter: v, selectedIndex: -1 }),
+  setAlbumFilter: (v) => set({ albumFilter: v, selectedIndex: -1 }),
+  setYearFilter: (v) => set({ yearFilter: v, selectedIndex: -1 }),
+  setHideOwned: (v) => set({ hideOwned: v, selectedIndex: -1 }),
   loadOwnedKeys: async () => {
     try {
       const keys = await window.api.ownedSongKeys()
@@ -372,7 +503,7 @@ export const useStore = create<AppState>((set, get) => {
       /* nevadí — nápověda „In library" prostě nebude */
     }
   },
-  setSort: (s) => set({ sort: s, selectedIndex: 0 }),
+  setSort: (s) => set({ sort: s, selectedIndex: -1 }),
   clearFilters: () => {
     set({
       instrumentFilters: [],
@@ -381,17 +512,20 @@ export const useStore = create<AppState>((set, get) => {
       charterFilter: '',
       albumFilter: '',
       yearFilter: '',
-      selectedIndex: 0
+      selectedIndex: -1
     })
     syncDeepMode()
   },
   setSelectedIndex: (i) => set({ selectedIndex: i }),
   setShowSettings: (v) => set({ showSettings: v }),
-  setShowLibrary: (v) => set({ showLibrary: v }),
+  // Zavření manageru vyčistí cíl „reveal" (příště se otevře normálně na kořeni).
+  setShowLibrary: (v) => set(v ? { showLibrary: true } : { showLibrary: false, libraryReveal: null }),
+  openLibraryAt: (rels) => set({ libraryReveal: rels, showLibrary: true }),
   setShowWhatsNew: (v) => set({ showWhatsNew: v }),
   openWhatsNew: (since) => set({ showWhatsNew: true, whatsNewSince: since ?? null }),
 
   doSearch: async (page = 1) => {
+    get().stopPreview() // nová sada výsledků → ať nehraje ukázka „naslepo"
     const { query, system, database, records } = get()
     // Prázdný dotaz normálně nic nehledá. Výjimka: Chorus Encore umí „browse all"
     // (prázdný dotaz vrátí celou databázi), takže u něj prázdné hledání pustíme —
@@ -416,7 +550,7 @@ export const useStore = create<AppState>((set, get) => {
         totalFiltered: res.totalFiltered,
         page: res.page,
         loading: false,
-        selectedIndex: 0,
+        selectedIndex: -1,
         selectedKeys: [], // nový výsledek → zruš předchozí výběr
         deep: false,
         deepSongs: [],
@@ -431,11 +565,13 @@ export const useStore = create<AppState>((set, get) => {
 
   goToPage: (p) => {
     const s = get()
-    if (s.deep) set({ page: Math.max(1, p), selectedIndex: 0 })
+    s.stopPreview() // změna stránky → zastav ukázku (řádek zmizí ze zobrazení)
+    if (s.deep) set({ page: Math.max(1, p), selectedIndex: -1 })
     else void s.doSearch(p)
   },
 
   surprise: async () => {
+    get().stopPreview()
     const { system, database, records } = get()
     // Chorus Encore umí „browse all" přes prázdný dotaz → opravdový náhodný výběr
     // z celé databáze. RhythmVerse prázdný dotaz odmítá, a v „both" by RV část
@@ -477,7 +613,7 @@ export const useStore = create<AppState>((set, get) => {
         totalFiltered: res.totalFiltered,
         page: res.page,
         loading: false,
-        selectedIndex: 0,
+        selectedIndex: -1,
         selectedKeys: []
       })
     } catch (e) {

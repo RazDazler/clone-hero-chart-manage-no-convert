@@ -14,7 +14,7 @@ import {
 } from './core/gamedetect'
 import { hideReminder, showReminder } from './reminder'
 import { jobManager } from './core/jobs'
-import { listSongFolders, ownedSongKeys } from './core/library'
+import { invalidateOwnedIndex, listSongFolders, ownedFolders, ownedSongKeys } from './core/library'
 import {
   libAddToPlaylist,
   libCopy,
@@ -39,6 +39,7 @@ import {
 } from './core/librarymgr'
 import type { SongMeta } from '../shared/types'
 import { invalidateLibraryIndex } from './core/playlists'
+import { getPreview } from './core/preview'
 import { search as searchRhythmverse } from './core/rhythmverse'
 import { getReleaseNotes, getReleaseNotesSince } from './core/update'
 import { registerHotkeys, unregisterHotkeys } from './hotkeys'
@@ -96,6 +97,9 @@ export function registerIpc(): void {
     }
   )
 
+  // 30s zvuková ukázka (poslech před stažením) — spáruje se v main procesu.
+  ipcMain.handle('preview:get', (_e, artist: string, title: string) => getPreview(artist, title))
+
   ipcMain.handle('jobs:enqueue', (_e, song: SongResult, targetSubfolder?: string) =>
     jobManager.enqueue(song, targetSubfolder)
   )
@@ -113,6 +117,9 @@ export function registerIpc(): void {
   ipcMain.handle('jobs:clearFinished', () => jobManager.clearFinished())
   ipcMain.handle('library:listFolders', () => listSongFolders())
   ipcMain.handle('library:ownedKeys', () => ownedSongKeys())
+  ipcMain.handle('library:ownedFolders', (_e, artist: string, title: string) =>
+    ownedFolders(artist, title)
+  )
 
   // Správce knihovny
   ipcMain.handle('lib:list', (_e, rel: string) => libList(rel))
@@ -155,7 +162,12 @@ export function registerIpc(): void {
     const next = setConfig(patch)
     registerHotkeys() // hotkeys se mohly změnit
     applyUiScale(next.uiScale) // sjednoť zoom s uloženou hodnotou
-    if (next.songsDir !== prevSongsDir) invalidateLibraryIndex() // jiná knihovna → starý index neplatí
+    if (next.songsDir !== prevSongsDir) {
+      // Jiná knihovna → starý index i „už mám" cache neplatí (jinak by se
+      // relativní cesty odhalovaly proti novému kořenu = špatná složka).
+      invalidateLibraryIndex()
+      invalidateOwnedIndex()
+    }
     return next
   })
   // Živý náhled UI scale (bez zápisu na disk) — Nastavení volá při posouvání.
@@ -280,4 +292,12 @@ export function registerIpc(): void {
   void pollGame()
   if (gamePollHandle) clearInterval(gamePollHandle)
   gamePollHandle = setInterval(pollGame, 3000)
+}
+
+/** Zastaví periodické dotazování na běžící hru (volá se při quitu). */
+export function stopGamePoll(): void {
+  if (gamePollHandle) {
+    clearInterval(gamePollHandle)
+    gamePollHandle = null
+  }
 }

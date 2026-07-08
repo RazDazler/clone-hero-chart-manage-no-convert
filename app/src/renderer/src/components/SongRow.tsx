@@ -1,5 +1,6 @@
 import { memo, useEffect, useState } from 'react'
 import type { DownloadJob, SongResult } from '../../../shared/types'
+import { getPreviewAudioEl, useStore } from '../store'
 import {
   detectManualHost,
   formatLabel,
@@ -116,6 +117,57 @@ function SongRowBase({
     if (url) window.api.openExternal(url)
   }
 
+  // „In library" → otevři píseň v Library Manageru (ne v Průzkumníku). Duplikáty
+  // (víc kopií) předáme jako seznam — manager pak nabídne přepínání mezi nimi.
+  const openLibraryAt = useStore((s) => s.openLibraryAt)
+  const revealInLibrary = async (): Promise<void> => {
+    try {
+      const rels = await window.api.ownedFolders(song.artist, song.title)
+      if (rels.length) openLibraryAt(rels)
+    } catch {
+      /* nevadí */
+    }
+  }
+
+  // Zvuková ukázka (poslech před stažením). Stav bereme přímo ze store, ať se
+  // tlačítko překreslí i přes memo (hook subscription memo neobchází).
+  const previewKey = useStore((s) => s.previewKey)
+  const previewStateVal = useStore((s) => s.previewState)
+  const previewLabel = useStore((s) => s.previewLabel)
+  const togglePreview = useStore((s) => s.togglePreview)
+  const pvActive = previewKey === song.key
+  const pvState = pvActive ? previewStateVal : 'idle'
+
+  // Průběh přehrávání (0–1) pro prstenec kolem obalu. Sleduje se JEN v aktivním
+  // řádku (timeupdate ~4×/s), takže se překresluje jen tenhle jeden řádek.
+  const [pvProgress, setPvProgress] = useState(0)
+  useEffect(() => {
+    if (!(pvActive && pvState === 'playing')) {
+      setPvProgress(0)
+      return
+    }
+    const el = getPreviewAudioEl()
+    if (!el) return
+    const update = (): void => {
+      const d = el.duration || 30
+      setPvProgress(d > 0 ? Math.min(1, el.currentTime / d) : 0)
+    }
+    update()
+    el.addEventListener('timeupdate', update)
+    return () => el.removeEventListener('timeupdate', update)
+  }, [pvActive, pvState])
+
+  const pvTitle =
+    pvState === 'playing'
+      ? `Playing preview${previewLabel ? `: ${previewLabel}` : ''} — click to stop`
+      : pvState === 'loading'
+        ? 'Loading preview…'
+        : pvState === 'unavailable'
+          ? 'No preview found for this song'
+          : pvState === 'error'
+            ? 'Preview failed — click to retry'
+            : 'Play a 30s preview (official recording, not the chart audio)'
+
   return (
     <div
       className={`song ${selected ? 'song--selected' : ''} ${checked ? 'song--checked' : ''}`}
@@ -140,6 +192,37 @@ function SongRowBase({
 
       <div className="song__art">
         <AlbumArt url={song.albumArtUrl} />
+        <button
+          type="button"
+          className={`song__preview song__preview--${pvState} ${
+            pvActive ? 'song__preview--active' : ''
+          }`}
+          style={
+            pvState === 'playing'
+              ? ({ '--pv': pvProgress } as React.CSSProperties)
+              : undefined
+          }
+          onClick={(e) => {
+            e.stopPropagation()
+            void togglePreview(song)
+          }}
+          title={pvTitle}
+          aria-label={pvTitle}
+        >
+          {pvState === 'playing' ? (
+            <span className="song__preview-ring" aria-hidden="true" />
+          ) : null}
+          {pvState === 'loading' ? (
+            <span className="song__preview-spin" aria-hidden="true" />
+          ) : (
+            <Icon
+              name={
+                pvState === 'playing' ? 'pause' : pvState === 'unavailable' ? 'previewOff' : 'play'
+              }
+              size={15}
+            />
+          )}
+        </button>
       </div>
 
       <div className="song__main">
@@ -177,9 +260,17 @@ function SongRowBase({
             </span>
           ) : null}
           {owned ? (
-            <span className="badge badge--owned" title="You already have this song in your library">
+            <button
+              type="button"
+              className="badge badge--owned"
+              title="Show this song in the Library Manager"
+              onClick={(e) => {
+                e.stopPropagation()
+                void revealInLibrary()
+              }}
+            >
               <Icon name="check" size={11} /> In library
-            </span>
+            </button>
           ) : null}
           {song.charter ? (
             <span className="song__charter">

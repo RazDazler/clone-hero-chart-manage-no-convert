@@ -78,35 +78,53 @@ export async function songHash(folderAbs: string): Promise<string | null> {
   return null
 }
 
-/** Serializuje seznam hashů do .setlist bufferu (přesně jako CH). */
-export function encodeSetlist(hashes: string[], speed = 100): Buffer {
+/** Jeden zápis v setlistu: hash písně + její rychlost v % (1 bajt, 100 = default). */
+export interface SetlistEntry {
+  hash: string
+  speed: number
+}
+
+/** Serializuje zápisy (hash + rychlost) do .setlist bufferu (přesně jako CH). */
+export function encodeSetlistEntries(entries: SetlistEntry[]): Buffer {
   const parts: Buffer[] = [HEADER]
   const count = Buffer.alloc(4)
-  count.writeUInt32LE(hashes.length >>> 0, 0)
+  count.writeUInt32LE(entries.length >>> 0, 0)
   parts.push(count)
-  for (const h of hashes) {
+  for (const e of entries) {
     parts.push(
       Buffer.from([0x20]),
-      Buffer.from(h, 'utf-8'), // 32 ASCII hex (uppercase)
-      Buffer.from([speed & 0xff]), // rychlost jako 1 bajt (100 = 0x64)
+      Buffer.from(e.hash, 'utf-8'), // 32 ASCII hex (uppercase)
+      Buffer.from([e.speed & 0xff]), // rychlost jako 1 bajt (100 = 0x64)
       Buffer.from([0x00])
     )
   }
   return Buffer.concat(parts)
 }
 
-/** Rozparsuje .setlist buffer zpět na seznam hashů (pro append/dedupe/procházení). */
-export function decodeSetlist(buf: Buffer): string[] {
-  const hashes: string[] = []
-  if (buf.length < 8 || !buf.subarray(0, 4).equals(HEADER)) return hashes
+/** Serializuje seznam hashů (všem stejná rychlost) — zpětně kompatibilní wrapper. */
+export function encodeSetlist(hashes: string[], speed = 100): Buffer {
+  return encodeSetlistEntries(hashes.map((h) => ({ hash: h, speed })))
+}
+
+/** Rozparsuje .setlist buffer na zápisy vč. rychlosti (zachová per-song speed). */
+export function decodeSetlistEntries(buf: Buffer): SetlistEntry[] {
+  const out: SetlistEntry[] = []
+  if (buf.length < 8 || !buf.subarray(0, 4).equals(HEADER)) return out
   let off = 8 // header(4) + count(4)
   while (off + 1 + ENTRY_HASH_LEN + 1 + 1 <= buf.length) {
     if (buf[off] !== 0x20) break
     off += 1
-    hashes.push(buf.subarray(off, off + ENTRY_HASH_LEN).toString('utf-8'))
+    const hash = buf.subarray(off, off + ENTRY_HASH_LEN).toString('utf-8')
+    const speed = buf[off + ENTRY_HASH_LEN] // bajt hned za hashem
+    out.push({ hash, speed })
     off += ENTRY_HASH_LEN + 1 + 1 // hash + speed(1) + 0x00
   }
-  return hashes
+  return out
+}
+
+/** Rozparsuje .setlist buffer zpět na seznam hashů (pro count/procházení). */
+export function decodeSetlist(buf: Buffer): string[] {
+  return decodeSetlistEntries(buf).map((e) => e.hash)
 }
 
 /** Vypíše existující setlisty (název bez přípony + počet písní). */
@@ -146,16 +164,17 @@ export async function addSongsToPlaylist(
   const file = join(dir, `${safe}.setlist`)
 
   return withFileLock(file, async () => {
-    // Načti existující hashe (když setlist už je), ať doplňujeme a nezahazujeme.
-    let existing: string[] = []
+    // Načti existující zápisy (vč. rychlostí), ať doplňujeme a nic nezahodíme —
+    // ani per-song rychlost, kterou si uživatel nastavil ve hře.
+    let existing: SetlistEntry[] = []
     if (existsSync(file)) {
       try {
-        existing = decodeSetlist(await fsp.readFile(file))
+        existing = decodeSetlistEntries(await fsp.readFile(file))
       } catch {
         existing = []
       }
     }
-    const seen = new Set(existing)
+    const seen = new Set(existing.map((e) => e.hash))
 
     let added = 0
     let skipped = 0
@@ -171,11 +190,11 @@ export async function addSongsToPlaylist(
         continue
       }
       seen.add(h)
-      existing.push(h)
+      existing.push({ hash: h, speed: 100 }) // nová píseň → default rychlost 100 %
       added++
     }
 
-    await writeSetlistAtomic(file, encodeSetlist(existing))
+    await writeSetlistAtomic(file, encodeSetlistEntries(existing))
     return { added, skipped, missingHash, total: existing.length }
   })
 }
@@ -183,7 +202,10 @@ export async function addSongsToPlaylist(
 /** Smaže celý setlist. */
 export async function deletePlaylist(name: string): Promise<void> {
   const file = join(setlistsDir(), `${sanitizeSetlistName(name)}.setlist`)
-  await fsp.rm(file, { force: true })
+  // Přes zámek, ať se nepotká s běžícím add/remove nad stejným souborem.
+  return withFileLock(file, async () => {
+    await fsp.rm(file, { force: true })
+  })
 }
 
 /** Přejmenuje setlist (soubor). */
@@ -191,18 +213,23 @@ export async function renamePlaylist(oldName: string, newName: string): Promise<
   const dir = setlistsDir()
   const src = join(dir, `${sanitizeSetlistName(oldName)}.setlist`)
   const dst = join(dir, `${sanitizeSetlistName(newName)}.setlist`)
-  if (!existsSync(src)) throw new Error('Playlist not found')
-  if (existsSync(dst)) throw new Error('A playlist with that name already exists')
-  await fsp.rename(src, dst)
+  // Zámek na zdrojový soubor serializuje rename proti add/remove nad ním.
+  return withFileLock(src, async () => {
+    if (!existsSync(src)) throw new Error('Playlist not found')
+    if (existsSync(dst)) throw new Error('A playlist with that name already exists')
+    await fsp.rename(src, dst)
+  })
 }
 
-/** Odebere ze setlistu písně podle hashů (přepíše soubor). */
+/** Odebere ze setlistu písně podle hashů (přepíše soubor, zachová rychlosti). */
 export async function removeSongsFromPlaylist(name: string, hashes: string[]): Promise<void> {
   const file = join(setlistsDir(), `${sanitizeSetlistName(name)}.setlist`)
   return withFileLock(file, async () => {
     const remove = new Set(hashes)
-    const remaining = decodeSetlist(await fsp.readFile(file)).filter((h) => !remove.has(h))
-    await writeSetlistAtomic(file, encodeSetlist(remaining))
+    const remaining = decodeSetlistEntries(await fsp.readFile(file)).filter(
+      (e) => !remove.has(e.hash)
+    )
+    await writeSetlistAtomic(file, encodeSetlistEntries(remaining))
   })
 }
 

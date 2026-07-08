@@ -14,7 +14,10 @@ export function run(
   onLine?: (line: string, stream: 'stdout' | 'stderr') => void
 ): Promise<RunResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(exe, args, { windowsHide: true })
+    // stdin = 'ignore': dítě uvidí na stdin okamžitě EOF, takže se nezasekne
+    // čekáním na vstup (např. 7z prompt "Enter password" u šifrovaného archivu),
+    // což by jinak zablokovalo CELOU frontu úloh (pump na job čeká).
+    const child = spawn(exe, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''
     let stdoutBuf = ''

@@ -196,11 +196,16 @@ export function PlaylistManagerModal({ onClose }: { onClose: () => void }): JSX.
                       key={s.hash}
                       className={`plm__song ${s.found ? '' : 'plm__song--missing'}`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked.has(s.hash)}
-                        onChange={() => toggle(s.hash)}
-                      />
+                      <span className="chk">
+                        <input
+                          type="checkbox"
+                          checked={checked.has(s.hash)}
+                          onChange={() => toggle(s.hash)}
+                        />
+                        <span className="chk__box">
+                          <Icon name="check" size={12} />
+                        </span>
+                      </span>
                       {s.found ? (
                         <span className="plm__songtext">
                           <span className="plm__songtitle">

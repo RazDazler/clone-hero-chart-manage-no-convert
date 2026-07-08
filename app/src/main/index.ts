@@ -1,7 +1,7 @@
 // Vstupní bod main procesu.
 
 import { app, BrowserWindow } from 'electron'
-import { registerIpc } from './ipc'
+import { registerIpc, stopGamePoll } from './ipc'
 import { registerHotkeys, unregisterHotkeys } from './hotkeys'
 import { createOverlay, getOverlay } from './overlay'
 import { destroyReminder } from './reminder'
@@ -34,6 +34,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('will-quit', () => {
     unregisterHotkeys()
+    stopGamePoll()
     destroyTray()
     destroyReminder()
   })

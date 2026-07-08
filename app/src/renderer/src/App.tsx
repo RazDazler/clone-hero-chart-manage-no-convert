@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import chLogoUrl from './assets/CHM_logo.png'
 import { DownloadQueue } from './components/DownloadQueue'
 import { FilterBar } from './components/FilterBar'
 import { Icon } from './components/Icon'
@@ -8,17 +7,25 @@ import { LocalDropModal } from './components/LocalDropModal'
 import { MarketplaceModal } from './components/MarketplaceModal'
 import { Pager } from './components/Pager'
 import { SearchBar } from './components/SearchBar'
+import { Sidebar } from './components/Sidebar'
 import { Settings } from './components/Settings'
 import { RefineFilters } from './components/RefineFilters'
 import { SongRow } from './components/SongRow'
 import { SortSelect } from './components/SortSelect'
 import { TargetFolderModal } from './components/TargetFolderModal'
 import { TitleBar } from './components/TitleBar'
-import { UpdateBanner } from './components/UpdateBanner'
 import { Discover } from './components/Discover'
 import { WhatsNew } from './components/WhatsNew'
 import { useStore } from './store'
-import { INSTRUMENTS, isAutoDownloadable, songKey, stripTags } from './utils'
+import { INSTRUMENTS, detectManualHost, isAutoDownloadable, songKey, stripTags } from './utils'
+import type { SongResult } from '../../shared/types'
+
+/** Manuální host (MEGA/Mediafire/shortener) nejde spolehlivě auto-stáhnout —
+ *  místo zařazení do fronty (kde by jen spadlo) otevřeme stránku v prohlížeči. */
+function openSongExternal(song: SongResult): void {
+  const url = song.downloadPageUrl || song.downloadUrl || song.externalUrl
+  if (url) void window.api.openExternal(url)
+}
 
 export function App(): JSX.Element {
   const results = useStore((s) => s.results)
@@ -156,6 +163,8 @@ export function App(): JSX.Element {
   // Akce „stáhnout" – oficiální DLC místo toho nabídne otevření obchodu.
   const triggerDownload = (song: (typeof results)[number]): void => {
     if (song.official) openMarketplace(song)
+    else if (detectManualHost(song.source, song.downloadUrl || song.downloadPageUrl))
+      openSongExternal(song)
     else if (!enqueuedKeys[song.key]) void openDownload(song)
   }
 
@@ -176,6 +185,8 @@ export function App(): JSX.Element {
     if (!song) return
     const st = useStore.getState()
     if (song.official) st.openMarketplace(song)
+    else if (detectManualHost(song.source, song.downloadUrl || song.downloadPageUrl))
+      openSongExternal(song)
     else if (!st.enqueuedKeys[song.key]) void st.openDownload(song)
   }, [])
   const handleRowMarketplace = useCallback((key: string) => {
@@ -229,13 +240,33 @@ export function App(): JSX.Element {
     const stopDrag = (e: DragEvent): void => e.preventDefault()
     window.addEventListener('dragover', stopDrag)
     window.addEventListener('drop', stopDrag)
+    // Když se okno schová (uživatel jde hrát), zastav zvukovou ukázku —
+    // ať nehraje hudba na pozadí, když appku nevidí.
+    const onVis = (): void => {
+      if (document.hidden) useStore.getState().stopPreview()
+    }
+    document.addEventListener('visibilitychange', onVis)
     return () => {
       offJob()
       offHotkey()
       window.removeEventListener('dragover', stopDrag)
       window.removeEventListener('drop', stopDrag)
+      document.removeEventListener('visibilitychange', onVis)
     }
   }, [loadConfig, applyJobUpdate])
+
+  // Klik mimo okno s výsledky → odznač vybraný řádek. (Uvnitř tabulky, v modalu
+  // ani v našeptávači neodznačujeme.)
+  useEffect(() => {
+    const onDown = (e: MouseEvent): void => {
+      if (useStore.getState().selectedIndex < 0) return
+      const t = e.target as HTMLElement | null
+      if (t?.closest('.tablewrap') || t?.closest('.modal-overlay') || t?.closest('.suggest')) return
+      useStore.getState().setSelectedIndex(-1)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
 
   // Globální klávesová navigace v overlayi.
   useEffect(() => {
@@ -291,6 +322,8 @@ export function App(): JSX.Element {
         const song = visible[selectedIndex]
         if (song) {
           if (song.official) openMarketplace(song)
+          else if (detectManualHost(song.source, song.downloadUrl || song.downloadPageUrl))
+            openSongExternal(song)
           else if (!enqueuedKeys[song.key]) void openDownload(song)
         }
       } else if (e.key === 'PageDown') {
@@ -328,9 +361,11 @@ export function App(): JSX.Element {
 
   return (
     <div className="app">
+      <div className="noise-overlay" aria-hidden="true" />
+      <div className="workspace">
+        <Sidebar />
+        <main className="content">
       <TitleBar />
-      <UpdateBanner />
-      <SearchBar />
       <FilterBar />
 
       {database !== 'enchor' && system !== 'ch' ? (
@@ -351,6 +386,8 @@ export function App(): JSX.Element {
           </span>
         </div>
       ) : null}
+
+      <SearchBar />
 
       {source.length > 0 && !loading && !error ? (
         <div className="resultsbar">
@@ -409,14 +446,16 @@ export function App(): JSX.Element {
         </div>
       ) : null}
 
-      <div className="results">
+      <div className="tablewrap">
+      <div
+        className={`results ${source.length > 0 && !loading && !error && visible.length > 0 ? 'results--table' : ''}`}
+      >
         {loading ? (
           <div className="state">Searching…</div>
         ) : error ? (
           <div className="state state--error">⚠ {error}</div>
         ) : source.length === 0 ? (
           <div className="state state--empty">
-            <img className="ch-logo" src={chLogoUrl} alt="" draggable={false} />
             <div className="state__msg">
               {query
                 ? 'Nothing found. Try a random pick or an artist below.'
@@ -428,7 +467,7 @@ export function App(): JSX.Element {
           <div className="state">
             {deep && deepLoading
               ? `No matches yet — scanning page ${deepScannedPages} of ${deepTotalPages}…`
-              : 'No song matches the instrument filter.'}
+              : 'No songs match the current filters. Try clearing a filter or Refine.'}
           </div>
         ) : (
           visible.map((song, i) => (
@@ -448,10 +487,13 @@ export function App(): JSX.Element {
           ))
         )}
       </div>
+      </div>
 
       {source.length > 0 && !loading ? (
         <Pager visibleCount={visible.length} matchTotal={deep ? filteredAll.length : undefined} />
       ) : null}
+        </main>
+      </div>
 
       <DownloadQueue />
       <Settings />

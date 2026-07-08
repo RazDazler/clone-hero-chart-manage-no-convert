@@ -35,7 +35,9 @@ export function isArchive(fileName: string): boolean {
  */
 export async function extract(archivePath: string, destDir: string): Promise<void> {
   const exe = sevenZipPath()
-  const res = await run(exe, ['x', '-y', `-o${destDir}`, archivePath])
+  // -p (prázdné heslo): u šifrovaného archivu 7z rovnou selže místo promptu.
+  // -- : konec přepínačů, aby se archiv s názvem začínajícím „-" nepovažoval za switch.
+  const res = await run(exe, ['x', '-y', '-p', `-o${destDir}`, '--', archivePath])
   if (res.code === 0) return
 
   const combined = (res.stdout + '\n' + res.stderr).toLowerCase()

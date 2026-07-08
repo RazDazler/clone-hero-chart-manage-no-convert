@@ -25,6 +25,7 @@ Thumbs.db
 # Landing page — nasazuje se lokálně přes `wrangler pages deploy pages`
 # (direct upload, ne přes GitHub), takže zdroj nemusí být v repu.
 /pages/
+/new pages/
 
 # Video assets (lokální, ne pro repo — pošleme přes YouTube)
 how it works video/

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   value: string
@@ -50,6 +50,15 @@ function toAccelerator(e: React.KeyboardEvent): { accel: string | null; reason?:
 export function HotkeyInput({ value, onChange }: Props): JSX.Element {
   const [capturing, setCapturing] = useState(false)
   const [warn, setWarn] = useState('')
+  const pausedRef = useRef(false)
+
+  // Pojistka: kdyby se pole odmountovalo se zaměřením (např. zavření Nastavení
+  // klikem na pozadí), blur nemusí přijít → globální hotkeys by zůstaly vypnuté.
+  useEffect(() => {
+    return () => {
+      if (pausedRef.current) void window.api.resumeHotkeys()
+    }
+  }, [])
 
   const invalid = value !== '' && !isAcceleratorValid(value)
 
@@ -63,10 +72,12 @@ export function HotkeyInput({ value, onChange }: Props): JSX.Element {
         onFocus={() => {
           setCapturing(true)
           setWarn('')
+          pausedRef.current = true
           window.api.pauseHotkeys() // ať F10/F9 nezasáhnou během zachytávání
         }}
         onBlur={() => {
           setCapturing(false)
+          pausedRef.current = false
           window.api.resumeHotkeys()
         }}
         onKeyDown={(e) => {

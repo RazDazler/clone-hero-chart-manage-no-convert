@@ -266,6 +266,8 @@ export interface RendererApi {
   listSongFolders(): Promise<string[]>
   /** Normalizované klíče (artist|title) písní už v knihovně — pro „In library" nápovědu. */
   ownedSongKeys(): Promise<string[]>
+  /** Relativní cesty (k Songs) položek odpovídajících písni (duplikáty = víc než jedna). */
+  ownedFolders(artist: string, title: string): Promise<string[]>
   // Správce knihovny
   libList(rel: string): Promise<LibListing>
   libCreateFolder(rel: string, name: string): Promise<void>
@@ -360,4 +362,22 @@ export interface RendererApi {
    * uživatel od svého updatu minul), jinak posledních `max` vydání.
    */
   getReleaseNotesSince(since?: string, max?: number): Promise<ReleaseNotes[]>
+  /** 30s zvuková ukázka spárovaná podle interpreta + názvu (iTunes → Deezer). */
+  preview(artist: string, title: string): Promise<PreviewResult>
+}
+
+/** Výsledek hledání zvukové ukázky (30s klip oficiální nahrávky). */
+export interface PreviewResult {
+  ok: boolean
+  /** MIME typ audia (audio/mp4, audio/mpeg…). */
+  mime?: string
+  /** Bajty 30s ukázky (přehrají se v rendereru přes blob URL). */
+  data?: ArrayBuffer
+  /** Co se reálně spárovalo — pro popisek „přehrávám: …". */
+  matchedArtist?: string
+  matchedTitle?: string
+  /** Zdroj ukázky (atribuce / ladění). */
+  source?: 'itunes' | 'deezer'
+  /** Důvod při ok=false: 'notfound' = nespárováno, 'error' = síť/stažení selhalo. */
+  reason?: 'notfound' | 'error'
 }

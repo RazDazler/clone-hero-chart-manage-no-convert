@@ -21,6 +21,9 @@ type Ctx = { x: number; y: number } | null
 export function LibraryManager(): JSX.Element | null {
   const show = useStore((s) => s.showLibrary)
   const close = useStore((s) => s.setShowLibrary)
+  // Cíl z „In library" (kopie písně k odhalení). Víc = duplikáty → banner.
+  const libraryReveal = useStore((s) => s.libraryReveal)
+  const [revealActive, setRevealActive] = useState<string | null>(null)
 
   const [cwd, setCwd] = useState('')
   const [entries, setEntries] = useState<LibEntry[]>([])
@@ -109,8 +112,40 @@ export function LibraryManager(): JSX.Element | null {
     }
   }
 
+  // Naviguje do složky s danou kopií písně (rel k Songs) a vybere ji.
+  const revealTarget = async (rel: string): Promise<void> => {
+    const parts = rel.split(/[\\/]/).filter(Boolean)
+    const name = parts.pop() ?? ''
+    const parent = parts.join('/')
+    // load() bumpne loadSeq synchronně; zapamatujeme si token a po awaitu
+    // ověříme, že nás nepředběhla novější navigace (rychlé klikání na kopie).
+    const p = load(parent)
+    const mySeq = loadSeq.current
+    await p
+    if (mySeq !== loadSeq.current) return
+    setRevealActive(rel)
+    if (name) {
+      setSelected(new Set([name]))
+      setAnchor(name)
+      // Doscrolluj na vybranou položku (po překreslení).
+      setTimeout(() => {
+        document
+          .querySelector('.lib__list .lib__item--sel')
+          ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      }, 60)
+    }
+  }
+
+  // Otevření: buď rovnou na cíli z „In library" (první kopie), nebo na kořeni.
   useEffect(() => {
-    if (show) void load('')
+    if (!show) return
+    const targets = useStore.getState().libraryReveal
+    if (targets && targets.length) {
+      void revealTarget(targets[0])
+    } else {
+      setRevealActive(null)
+      void load('')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show])
 
@@ -282,6 +317,22 @@ export function LibraryManager(): JSX.Element | null {
             <Icon name="refresh" size={15} />
           </button>
         </div>
+
+        {libraryReveal && libraryReveal.length > 1 ? (
+          <div className="lib__reveal">
+            <span className="lib__reveal-label">{libraryReveal.length} copies — jump to:</span>
+            {libraryReveal.map((rel) => (
+              <button
+                key={rel}
+                className={`lib__reveal-chip ${revealActive === rel ? 'lib__reveal-chip--on' : ''}`}
+                title={rel}
+                onClick={() => void revealTarget(rel)}
+              >
+                {rel}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         {error ? <div className="lib__error">⚠ {error}</div> : null}
 

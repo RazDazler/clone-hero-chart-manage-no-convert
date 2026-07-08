@@ -11,6 +11,7 @@ import type {
   PlaylistAddResult,
   PlaylistInfo,
   PlaylistSong,
+  PreviewResult,
   ReleaseNotes,
   RhythmVerseSystem,
   SearchResponse,
@@ -42,6 +43,9 @@ const api = {
 
   listSongFolders: () => ipcRenderer.invoke('library:listFolders') as Promise<string[]>,
   ownedSongKeys: () => ipcRenderer.invoke('library:ownedKeys') as Promise<string[]>,
+  /** Relativní cesty (k Songs) položek knihovny odpovídajících písni (duplikáty = víc). */
+  ownedFolders: (artist: string, title: string) =>
+    ipcRenderer.invoke('library:ownedFolders', artist, title) as Promise<string[]>,
 
   libList: (rel: string) => ipcRenderer.invoke('lib:list', rel) as Promise<LibListing>,
   libCreateFolder: (rel: string, name: string) =>
@@ -117,6 +121,10 @@ const api = {
 
   /** Rozbalí shortlink na finální URL. */
   resolveUrl: (url: string) => ipcRenderer.invoke('url:resolve', url) as Promise<string>,
+
+  /** 30s zvuková ukázka spárovaná podle interpreta + názvu. */
+  preview: (artist: string, title: string) =>
+    ipcRenderer.invoke('preview:get', artist, title) as Promise<PreviewResult>,
 
   runningGame: () =>
     ipcRenderer.invoke('game:running') as Promise<'clone-hero' | 'yarg' | null>,

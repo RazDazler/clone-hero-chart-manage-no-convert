@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from './Icon'
 
@@ -18,19 +18,51 @@ export function DownloadQueue(): JSX.Element | null {
   const clearFinishedJobs = useStore((s) => s.clearFinishedJobs)
   const [open, setOpen] = useState(true)
   const list = useMemo(() => Object.values(jobs).reverse(), [jobs])
+  const shouldShow = list.length > 0
 
-  if (list.length === 0) return null
-  const active = list.filter((j) => j.stage !== 'done' && j.stage !== 'error').length
-  const finished = list.length - active
-  const anyDone = list.some((j) => j.stage === 'done')
+  // Plynulé vysunutí/zasunutí zespodu (grid-template-rows 0fr↔1fr). Při zavírání
+  // držíme poslední obsah (snapshot), ať lišta při zajíždění není prázdná, a
+  // odmountujeme až po dojetí animace.
+  const [rendered, setRendered] = useState(shouldShow)
+  const [shown, setShown] = useState(shouldShow)
+  const lastList = useRef(list)
+  if (shouldShow) lastList.current = list
+
+  useEffect(() => {
+    if (shouldShow) {
+      setRendered(true)
+      // Dvojitý rAF: napřed se vykreslí zavřený stav (0fr), pak teprve otevřeme
+      // → transition 0fr→1fr reálně proběhne (jinak by to skočilo).
+      let raf2 = 0
+      const raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setShown(true))
+      })
+      return () => {
+        cancelAnimationFrame(raf1)
+        cancelAnimationFrame(raf2)
+      }
+    }
+    setShown(false)
+    const t = setTimeout(() => setRendered(false), 380)
+    return () => clearTimeout(t)
+  }, [shouldShow])
+
+  if (!rendered) return null
+
+  const display = shouldShow ? list : lastList.current
+  const active = display.filter((j) => j.stage !== 'done' && j.stage !== 'error').length
+  const finished = display.length - active
+  const anyDone = display.some((j) => j.stage === 'done')
 
   return (
-    <div className={`queue ${open ? 'queue--open' : ''}`}>
+    <div className={`queue-wrap ${shown ? 'queue-wrap--open' : ''}`}>
+      <div className="queue-inner">
+        <div className={`queue ${open ? 'queue--open' : ''}`}>
       <div className="queue__header">
         <button className="queue__toggle" onClick={() => setOpen((v) => !v)}>
           <span>Download queue</span>
           <span className="queue__count">
-            {active > 0 ? `${active} active` : `${list.length} done`}
+            {active > 0 ? `${active} active` : `${display.length} done`}
           </span>
           <Icon
             name="caret"
@@ -56,7 +88,7 @@ export function DownloadQueue(): JSX.Element | null {
       ) : null}
       {open ? (
         <div className="queue__list">
-          {list.map((job) => (
+          {display.map((job) => (
             <div className={`qjob qjob--${job.stage}`} key={job.id}>
               <div className="qjob__top">
                 <span className="qjob__title">
@@ -77,8 +109,10 @@ export function DownloadQueue(): JSX.Element | null {
               {job.error ? <div className="qjob__err">⚠ {job.error}</div> : null}
             </div>
           ))}
+          </div>
+        ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   )
 }
