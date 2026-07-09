@@ -16,12 +16,19 @@ game itself.
 - 🔎 **Two databases, one UI** — RhythmVerse + Chorus Encore. Pick one or
   search both at once (merged & de‑duplicated by artist + title + charter,
   Encore preferred when duplicates appear because its hosting is direct).
+- 🗂️ **Browse the whole catalog** — leave the search box empty and the app
+  loads the entire library (140k+ files on RhythmVerse, 90k+ on Encore) so you
+  can page through everything, not just what a keyword matches.
 - ⚡ **Type‑ahead suggestions** — debounced top‑results dropdown appears as
   you type, with album thumbnails and prefix highlighting.
-- 🎚️ **Filter chips** — large round instrument buttons (guitar, bass, drums,
-  keys, vocals) and a difficulty range picker (`MIN`–`MAX` or exact dots) to
-  narrow results.
-- 🔀 **Sort** by relevance, title, artist or length.
+- 🎚️ **Instrument & difficulty** — large round instrument buttons (guitar,
+  bass, drums, keys, vocals) and a difficulty range picker (`MIN`–`MAX` or
+  exact dots) to narrow results.
+- 🎛️ **Advanced filters** — an expandable Filters panel. On RhythmVerse,
+  filter by **genre**, **release year** and **song length** server‑side across
+  the whole catalog; on either database, refine the loaded results by
+  **charter** / **album** and hide songs you already own.
+- 🔀 **Sort** by title, artist or length (the default order is relevance).
 
 ### Downloads
 - ⬇️ **Multi‑host downloader** — Google Drive (files & folders, including the
@@ -194,7 +201,9 @@ anywhere" bundle for sharing.
 - Type a song or artist. Type‑ahead suggestions appear after a short pause —
   click one to jump straight to that song, or hit **Search** for the full
   results page.
-- Use the **instrument circles** and **difficulty range** to filter.
+- Leave the search box empty to **browse the whole catalog**, or use the
+  **instrument circles**, **difficulty range** and the **Filters** panel
+  (genre, release year, song length, charter, album) to narrow results.
 - Click **Download** on a row → pick a target subfolder inside `Songs` (or
   create a new one) → done. For hosts the app can't auto‑download from, the
   button is replaced with **Get on MEGA** / **Get on Mediafire** /
