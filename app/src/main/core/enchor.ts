@@ -13,7 +13,12 @@
 //
 // Obtížnosti: -1 = part nezahrán; 0..6 = tier.
 
-import type { InstrumentDifficulties, SearchResponse, SongResult } from '../../shared/types'
+import type {
+  InstrumentDifficulties,
+  SearchFilters,
+  SearchResponse,
+  SongResult
+} from '../../shared/types'
 
 const API = 'https://api.enchor.us'
 const FILES = 'https://files.enchor.us'
@@ -114,16 +119,25 @@ function normalize(c: EnchorChart): SongResult {
   }
 }
 
+/**
+ * Vyhledávání / procházení Chorus Encore. Prázdný `search` vrací celý katalog
+ * (browse all). Server umí filtrovat jen `instrument` + `difficulty` (ověřeno);
+ * ostatní filtry (žánr, dekáda…) neumí, takže je ignorujeme (v UI jsou pro
+ * Encore zašedlé). Encore bere jednu hodnotu, takže posíláme první vybranou.
+ */
 export async function search(
   text: string,
   page = 1,
-  records = 25
+  records = 25,
+  filters?: SearchFilters
 ): Promise<SearchResponse> {
-  const body = {
+  const body: Record<string, unknown> = {
     search: text,
     page,
     per_page: records
   }
+  if (filters?.instrument?.length) body.instrument = filters.instrument[0]
+  if (filters?.difficulty?.length) body.difficulty = filters.difficulty[0]
 
   const res = await fetch(`${API}/search`, {
     method: 'POST',

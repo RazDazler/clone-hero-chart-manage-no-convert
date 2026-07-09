@@ -9,7 +9,6 @@ import { Pager } from './components/Pager'
 import { SearchBar } from './components/SearchBar'
 import { Sidebar } from './components/Sidebar'
 import { Settings } from './components/Settings'
-import { RefineFilters } from './components/RefineFilters'
 import { SongRow } from './components/SongRow'
 import { SortSelect } from './components/SortSelect'
 import { TargetFolderModal } from './components/TargetFolderModal'
@@ -45,7 +44,6 @@ export function App(): JSX.Element {
   const diffMax = useStore((s) => s.diffMax)
   const charterFilter = useStore((s) => s.charterFilter)
   const albumFilter = useStore((s) => s.albumFilter)
-  const yearFilter = useStore((s) => s.yearFilter)
   const ownedKeys = useStore((s) => s.ownedKeys)
   const hideOwned = useStore((s) => s.hideOwned)
   const sort = useStore((s) => s.sort)
@@ -64,7 +62,6 @@ export function App(): JSX.Element {
   const filteredAll = useMemo(() => {
     const cf = charterFilter.trim().toLowerCase()
     const af = albumFilter.trim().toLowerCase()
-    const yf = yearFilter.trim()
     const diffNarrowed = diffMin > 0 || diffMax < 6
     const filtered = source.filter((song) => {
       if (instrumentFilters.length > 0) {
@@ -87,7 +84,6 @@ export function App(): JSX.Element {
       // stripTags: filtr musí matchovat čistý text, ne <color=…> značky.
       if (cf && !stripTags(song.charter ?? '').toLowerCase().includes(cf)) return false
       if (af && !(song.album ?? '').toLowerCase().includes(af)) return false
-      if (yf && !String(song.year ?? '').includes(yf)) return false
       if (hideOwned && ownedKeys.has(songKey(song.artist, song.title))) return false
       return true
     })
@@ -105,7 +101,6 @@ export function App(): JSX.Element {
     diffMax,
     charterFilter,
     albumFilter,
-    yearFilter,
     hideOwned,
     ownedKeys,
     sort
@@ -209,6 +204,11 @@ export function App(): JSX.Element {
       } catch {
         /* config se načte znovu při otevření Nastavení */
       }
+      // Úvodní obrazovka = rovnou procházení katalogu (RhythmVerse + Clone Hero,
+      // panel filtrů otevřený). Je to jen jedna stránka (25 řádků) = jeden dotaz,
+      // takže na start/výkon to nemá dopad. Číselník naplní dropdowny filtrů.
+      void useStore.getState().loadFilterOptions()
+      void useStore.getState().doSearch(1)
       // Index „už mám v knihovně" (nápověda ve výsledcích).
       void useStore.getState().loadOwnedKeys()
       // První spuštění mimo složku hry: pokud Songs neexistuje, otevři Nastavení.
@@ -440,7 +440,6 @@ export function App(): JSX.Element {
                 </button>
               </div>
             ) : null}
-            <RefineFilters />
             <SortSelect />
           </div>
         </div>
@@ -458,8 +457,8 @@ export function App(): JSX.Element {
           <div className="state state--empty">
             <div className="state__msg">
               {query
-                ? 'Nothing found. Try a random pick or an artist below.'
-                : 'Search for a song or artist, or let it surprise you.'}
+                ? 'Nothing found. Try a different search, or an artist below.'
+                : 'Search for a song or artist.'}
             </div>
             <Discover />
           </div>

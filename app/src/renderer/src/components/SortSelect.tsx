@@ -4,7 +4,7 @@ import type { SortKey } from '../store'
 import { Icon } from './Icon'
 
 const OPTIONS: { id: SortKey; label: string }[] = [
-  { id: 'relevance', label: 'Relevance' },
+  { id: 'relevance', label: 'Default' },
   { id: 'title', label: 'Title (A–Z)' },
   { id: 'artist', label: 'Artist (A–Z)' },
   { id: 'length', label: 'Length' }

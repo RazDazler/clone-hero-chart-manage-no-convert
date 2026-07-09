@@ -106,7 +106,7 @@ export function Pager({
             {deepLoading
               ? ` · scanning ${deepScannedPages}/${deepTotalPages}…`
               : deepCapHit
-                ? ` · first ${deepTotalPages * records} results scanned`
+                ? ` · first ${deepTotalPages * 100} scanned` /* 100 = DEEP_FETCH ve store */
                 : ''}
           </>
         ) : (

@@ -2,7 +2,14 @@
 
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { existsSync } from 'fs'
-import type { Database, RhythmVerseSystem, SearchResponse, SongResult } from '../shared/types'
+import type {
+  Database,
+  FilterOptions,
+  RhythmVerseSystem,
+  SearchFilters,
+  SearchResponse,
+  SongResult
+} from '../shared/types'
 import { getConfig, setConfig } from './core/config'
 import { search as searchEnchor } from './core/enchor'
 import { peekFileMeta } from './core/filemeta'
@@ -40,7 +47,7 @@ import {
 import type { SongMeta } from '../shared/types'
 import { invalidateLibraryIndex } from './core/playlists'
 import { getPreview } from './core/preview'
-import { search as searchRhythmverse } from './core/rhythmverse'
+import { fetchFilterOptions, search as searchRhythmverse } from './core/rhythmverse'
 import { getReleaseNotes, getReleaseNotesSince } from './core/update'
 import { registerHotkeys, unregisterHotkeys } from './hotkeys'
 import { applyUiScale, getOverlay, hideOverlay } from './overlay'
@@ -59,17 +66,18 @@ export function registerIpc(): void {
       page: number,
       records: number,
       system?: RhythmVerseSystem,
-      database?: Database
+      database?: Database,
+      filters?: SearchFilters
     ): Promise<SearchResponse> => {
       const db: Database = database ?? 'rhythmverse'
       if (db === 'enchor') {
-        return searchEnchor(text, page, records)
+        return searchEnchor(text, page, records, filters)
       }
       if (db === 'both') {
         // Spojený režim: stáhne první stránku z obou a dedupuje.
         const [rv, en] = await Promise.allSettled([
-          searchRhythmverse(text, page, records, system ?? 'ch'),
-          searchEnchor(text, page, records)
+          searchRhythmverse(text, page, records, system ?? 'ch', filters),
+          searchEnchor(text, page, records, filters)
         ])
         const rvSongs = rv.status === 'fulfilled' ? rv.value.songs : []
         const enSongs = en.status === 'fulfilled' ? en.value.songs : []
@@ -93,8 +101,15 @@ export function registerIpc(): void {
           (en.status === 'fulfilled' ? en.value.totalFiltered : 0)
         return { songs: merged, totalFiltered: total, page, records }
       }
-      return searchRhythmverse(text, page, records, system ?? 'ch')
+      return searchRhythmverse(text, page, records, system ?? 'ch', filters)
     }
+  )
+
+  // Volby filtrů pro advanced panel (žánry/dekády/roky/délky z RhythmVerse číselníku).
+  ipcMain.handle(
+    'search:filterOptions',
+    (_e, system?: RhythmVerseSystem): Promise<FilterOptions> =>
+      fetchFilterOptions(system ?? 'ch')
   )
 
   // 30s zvuková ukázka (poslech před stažením) — spáruje se v main procesu.

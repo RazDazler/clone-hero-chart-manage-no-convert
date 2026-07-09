@@ -11,7 +11,14 @@
 //
 // Pozn.: hodnota obtížnosti 0 nebo null znamená „part nezahraný"; 1–6 je tier.
 
-import type { InstrumentDifficulties, SearchResponse, SongResult } from '../../shared/types'
+import type {
+  FilterOption,
+  FilterOptions,
+  InstrumentDifficulties,
+  SearchFilters,
+  SearchResponse,
+  SongResult
+} from '../../shared/types'
 import {
   anyNeedsConversion,
   formatNeedsConversion,
@@ -160,18 +167,48 @@ function normalizeSong(song: { data: Record<string, unknown>; file: Record<strin
   }
 }
 
+/** Normalizovaná obtížnost → RhythmVerse kód (`difficulties[]`). */
+const DIFF_TO_RV: Record<string, string> = { expert: 'x', hard: 'h', medium: 'm', easy: 'e' }
+
+/**
+ * Serverové filtry se posílají jako serializovaný formulář (stejně jako to dělá
+ * web přes `$('#mv_songs_view_filters').serialize()`): `klíč[]=hodnota`. Přijímá
+ * je jak `search/live`, tak `list`. Ověřeno živě: `genre[]=rock` i
+ * `instrument[]=drums` reálně mění `total_filtered`.
+ */
+function applyFilters(body: URLSearchParams, filters?: SearchFilters): void {
+  if (!filters) return
+  for (const g of filters.genre ?? []) body.append('genre[]', g)
+  for (const i of filters.instrument ?? []) body.append('instrument[]', i)
+  for (const d of filters.difficulty ?? []) body.append('difficulties[]', DIFF_TO_RV[d] ?? d)
+  for (const dec of filters.decade ?? []) body.append('decade[]', dec)
+  for (const y of filters.year ?? []) body.append('year[]', y)
+  for (const sl of filters.songLength ?? []) body.append('song_length[]', sl)
+}
+
+/**
+ * Vyhledávání / procházení RhythmVerse.
+ *  - `text` neprázdný → endpoint `songfiles/search/live` (fulltext + filtry).
+ *  - `text` prázdný → endpoint `songfiles/list` = „browse all" (celý katalog,
+ *    stránkovaný na serveru), volitelně zúžený filtry.
+ * Obě varianty vrací stejnou strukturu, takže `normalizeSong` sedí na obojí.
+ */
 export async function search(
   text: string,
   page = 1,
   records = 25,
-  system: RhythmVerseSystem = 'ch'
+  system: RhythmVerseSystem = 'ch',
+  filters?: SearchFilters
 ): Promise<SearchResponse> {
-  const url = `${BASE}/api/${system}/songfiles/search/live`
+  const hasText = !!text.trim()
+  const endpoint = hasText ? 'search/live' : 'list'
+  const url = `${BASE}/api/${system}/songfiles/${endpoint}`
   const body = new URLSearchParams()
-  body.set('text', text)
+  if (hasText) body.set('text', text)
   body.set('data_type', 'full')
   body.set('records', String(records))
   body.set('page', String(page))
+  applyFilters(body, filters)
 
   const res = await fetch(url, {
     method: 'POST',
@@ -205,5 +242,78 @@ export async function search(
     totalFiltered: num(json.data.records?.total_filtered) ?? songs.length,
     page,
     records
+  }
+}
+
+// ── Číselník filtrů (pro advanced panel) ──────────────────────────────────
+
+const UA_HEADER =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+
+/** Instrumenty a obtížnosti jsou normalizované a stabilní → napevno (ne z číselníku). */
+const INSTRUMENT_OPTS: FilterOption[] = [
+  { id: 'guitar', label: 'Guitar' },
+  { id: 'bass', label: 'Bass' },
+  { id: 'drums', label: 'Drums' },
+  { id: 'vocals', label: 'Vocals' },
+  { id: 'keys', label: 'Keys' }
+]
+const DIFFICULTY_OPTS: FilterOption[] = [
+  { id: 'expert', label: 'Expert' },
+  { id: 'hard', label: 'Hard' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'easy', label: 'Easy' }
+]
+
+/** RhythmVerse číselník vrací skupiny jako mapu `{ id: label }`. */
+function dictToOptions(
+  obj: unknown,
+  labelFn?: (id: string, label: string) => string
+): FilterOption[] {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return []
+  return Object.entries(obj as Record<string, unknown>).map(([id, label]) => ({
+    id: String(id),
+    label: labelFn ? labelFn(String(id), String(label)) : String(label)
+  }))
+}
+
+/**
+ * Volby filtrů pro advanced panel. Žánry/dekády/roky/délky tahá z RhythmVerse
+ * `dictionary/list` (GET); instrument + obtížnost jsou napevno (normalizované).
+ */
+export async function fetchFilterOptions(
+  system: RhythmVerseSystem = 'ch'
+): Promise<FilterOptions> {
+  const url = `${BASE}/api/${system}/dictionary/list`
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/json, text/javascript, */*; q=0.01',
+      'X-Requested-With': 'XMLHttpRequest',
+      'User-Agent': UA_HEADER
+    }
+  })
+  if (!res.ok) {
+    throw new Error(`RhythmVerse dictionary vrátilo HTTP ${res.status}`)
+  }
+  const json: any = await res.json()
+  const f = (json?.data?.filters as Record<string, unknown>) ?? {}
+  // Roky na RhythmVerse obsahují vtípky/překlepy nahrávačů (budoucí 2077, 2112…
+  // i prehistorické 1066, 1337). Ve VÝBĚRU necháme jen smysluplný rozsah
+  // 1900–letošní rok; samotné písničky s vadným rokem NEskrýváme (byl by to
+  // reálný chart zahozený kvůli chybnému metadatu).
+  const nowYear = new Date().getFullYear()
+  const years = dictToOptions(f.year)
+    .filter((o) => {
+      const y = Number(o.id)
+      return Number.isFinite(y) && y >= 1900 && y <= nowYear
+    })
+    .sort((a, b) => Number(b.id) - Number(a.id))
+  return {
+    genre: dictToOptions(f.genre).sort((a, b) => a.label.localeCompare(b.label)),
+    instrument: INSTRUMENT_OPTS,
+    difficulty: DIFFICULTY_OPTS,
+    decade: dictToOptions(f.decade, (id) => `${id}s`),
+    year: years,
+    songLength: dictToOptions(f.song_length)
   }
 }

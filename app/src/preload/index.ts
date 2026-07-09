@@ -6,6 +6,7 @@ import type {
   Database,
   DownloadJob,
   DupGroup,
+  FilterOptions,
   LibListing,
   LibSongInfo,
   PlaylistAddResult,
@@ -14,6 +15,7 @@ import type {
   PreviewResult,
   ReleaseNotes,
   RhythmVerseSystem,
+  SearchFilters,
   SearchResponse,
   SongDetail,
   SongMeta,
@@ -28,9 +30,20 @@ const api = {
     page: number,
     records: number,
     system?: RhythmVerseSystem,
-    database?: Database
+    database?: Database,
+    filters?: SearchFilters
   ) =>
-    ipcRenderer.invoke('search', text, page, records, system, database) as Promise<SearchResponse>,
+    ipcRenderer.invoke(
+      'search',
+      text,
+      page,
+      records,
+      system,
+      database,
+      filters
+    ) as Promise<SearchResponse>,
+  getFilterOptions: (system?: RhythmVerseSystem) =>
+    ipcRenderer.invoke('search:filterOptions', system) as Promise<FilterOptions>,
 
   enqueueDownload: (song: SongResult, targetSubfolder?: string) =>
     ipcRenderer.invoke('jobs:enqueue', song, targetSubfolder) as Promise<string>,

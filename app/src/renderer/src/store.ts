@@ -3,10 +3,12 @@ import type {
   AppConfig,
   Database,
   DownloadJob,
+  FilterOptions,
   RhythmVerseSystem,
+  SearchFilters,
   SongResult
 } from '../../shared/types'
-import { isAutoDownloadable, SURPRISE_SEEDS } from './utils'
+import { isAutoDownloadable } from './utils'
 
 export type SortKey = 'relevance' | 'title' | 'artist' | 'length'
 
@@ -42,7 +44,6 @@ interface AppState {
   // Zpřesňující filtry přes načtené výsledky (contains, case-insensitive)
   charterFilter: string
   albumFilter: string
-  yearFilter: string
   // „Už mám v knihovně" — normalizované klíče písní + přepínač skrytí
   ownedKeys: Set<string>
   hideOwned: boolean
@@ -87,6 +88,15 @@ interface AppState {
   /** Dotaz měl víc stránek než strop — prohledán jen začátek (obří katalogy). */
   deepCapHit: boolean
 
+  // ── Advanced filtry / browse ─────────────────────────────────────────────
+  /** Serverové filtry z advanced panelu (žánr, rok, délka). Instrument se bere
+   *  z `instrumentFilters`. Prázdné = běžné hledání (žádný browse). */
+  filters: SearchFilters
+  /** Volby do dropdownů (RhythmVerse číselník); null dokud se nenačtou. */
+  filterOptions: FilterOptions | null
+  /** Je advanced panel otevřený? */
+  showFilters: boolean
+
   // ── Zvuková ukázka (poslech před stažením) ───────────────────────────────
   /** Klíč písně, jejíž ukázka je právě aktivní (načítá se / hraje). */
   previewKey: string | null
@@ -104,11 +114,16 @@ interface AppState {
   setDiffRange: (min: number, max: number) => void
   setCharterFilter: (v: string) => void
   setAlbumFilter: (v: string) => void
-  setYearFilter: (v: string) => void
   setHideOwned: (v: boolean) => void
   loadOwnedKeys: () => Promise<void>
   setSort: (s: SortKey) => void
   clearFilters: () => void
+  // ── Advanced filtry ──
+  /** Nastaví jeden filtr advanced panelu a hned přenačte výsledky (auto-apply). */
+  setFilter: (key: keyof SearchFilters, values: string[]) => void
+  /** Lazy načtení voleb filtrů z RhythmVerse číselníku (jednou). */
+  loadFilterOptions: () => Promise<void>
+  setShowFilters: (v: boolean) => void
   setSelectedIndex: (i: number) => void
   setShowSettings: (v: boolean) => void
   setShowLibrary: (v: boolean) => void
@@ -120,8 +135,6 @@ interface AppState {
   doSearch: (page?: number) => Promise<void>
   /** Přepne stránku: v deep režimu lokálně, jinak server dotazem. */
   goToPage: (p: number) => void
-  /** „Surprise me" — náhodné seed slovo, náhodná stránka, zamíchané výsledky. */
-  surprise: () => Promise<void>
   /** Spustí hledání konkrétního termínu (discovery chip). */
   pickSearch: (term: string) => Promise<void>
   openDownload: (song: SongResult) => Promise<void>
@@ -218,7 +231,7 @@ let ownedReloadTimer: ReturnType<typeof setTimeout> | null = null
 /**
  * Sekvenční token hledání — ochrana proti závodu odpovědí. Pomalá odpověď ze
  * staršího požadavku (stránka 1) nesmí přepsat novější (stránka 2, jiný dotaz,
- * jiná databáze). Sdílený pro doSearch i surprise, aby se invalidovaly navzájem.
+ * jiná databáze).
  * (Stejný vzor jako typeahead v SearchBar.)
  */
 let searchSeq = 0
@@ -252,15 +265,50 @@ function stopPreviewAudio(): void {
 }
 
 export const useStore = create<AppState>((set, get) => {
-  /** Aktivní klientské filtry, které server neumí (nástroj / obtížnost). */
-  const hasClientFilters = (): boolean => {
+  /** Filtr, který server NEUMÍ plně → nutný deep scan (nabalit stránky a
+   *  filtrovat lokálně). RhythmVerse umí `instrument[]` i pro víc nástrojů (AND,
+   *  ověřeno), takže jeden i víc nástrojů na RV = čistě serverově. Encore umí
+   *  jen jeden nástroj (posílá se první), takže víc nástrojů na Encore/Both =
+   *  deep scan. Obtížnostní tier server nefiltruje vůbec = deep scan. */
+  const needsDeepScan = (): boolean => {
     const s = get()
-    return s.instrumentFilters.length > 0 || s.diffMin > 0 || s.diffMax < 6
+    const tierNarrowed = s.diffMin > 0 || s.diffMax < 6
+    const encoreMultiInstrument = s.database !== 'rhythmverse' && s.instrumentFilters.length > 1
+    return tierNarrowed || encoreMultiInstrument
   }
 
-  /** Strop deep scanu: 40 stránek (při 25/str. = 1000 písní). Chrání před
-   *  stahováním celé Encore DB (~93k) při prázdném browse dotazu. */
+  /** „Browse" režim: otevřený filtr panel NEBO nastavený advanced filtr. Pak se
+   *  jede serverovým procházením katalogu (RhythmVerse `list` / Encore prázdný
+   *  dotaz) se serverovými filtry, ne klientský deep scan. */
+  const browseActive = (): boolean => {
+    const s = get()
+    const f = s.filters
+    // Prázdný dotaz = vždy procházení katalogu (RhythmVerse `list` / Encore
+    // browse), ať se výsledky nevysypou do prázdna při zavření panelu.
+    return (
+      s.showFilters ||
+      !s.query.trim() ||
+      !!(f.genre?.length || f.year?.length || f.songLength?.length)
+    )
+  }
+
+  /** Serverové filtry pro dotaz = advanced panel (žánr/rok/délka) + instrument
+   *  z chipů (RhythmVerse i Encore ho umí serverově). Vrátí undefined, když nic. */
+  const buildServerFilters = (): SearchFilters | undefined => {
+    const s = get()
+    const f: SearchFilters = {}
+    if (s.filters.genre?.length) f.genre = s.filters.genre
+    if (s.filters.year?.length) f.year = s.filters.year
+    if (s.filters.songLength?.length) f.songLength = s.filters.songLength
+    if (s.instrumentFilters.length) f.instrument = s.instrumentFilters
+    return Object.keys(f).length ? f : undefined
+  }
+
+  /** Strop deep scanu: 40 stránek. Chrání před stahováním celé DB (~93k). */
   const DEEP_MAX_PAGES = 40
+  /** Sken tahá po 100 (ne po `records`) → 40 stránek = 4000 písní pokrytí při
+   *  stejném počtu requestů. Zobrazení pak stránkuje lokálně po `records`. */
+  const DEEP_FETCH = 100
 
   /**
    * Stáhne postupně všechny stránky aktuálního dotazu (do stropu) a nabaluje
@@ -269,8 +317,10 @@ export const useStore = create<AppState>((set, get) => {
    */
   const deepScan = async (): Promise<void> => {
     get().stopPreview() // změna filtrů přebuduje výsledky → ať nehraje ukázka „naslepo"
-    const { query, database, system, records } = get()
-    if (!query.trim() && database !== 'enchor') {
+    const { query, database, system } = get()
+    // Prázdný dotaz mimo browse (a mimo Encore) nemá co skenovat → vyčisti.
+    // V browse (prázdný dotaz = katalog) pokračuj přes `list` endpoint.
+    if (!query.trim() && database !== 'enchor' && !browseActive()) {
       searchSeq++
       set({ results: [], totalFiltered: 0, error: null, loading: false })
       return
@@ -292,17 +342,30 @@ export const useStore = create<AppState>((set, get) => {
     try {
       let totalPages = 1
       for (let p = 1; p <= Math.min(totalPages, DEEP_MAX_PAGES); p++) {
-        const res = await window.api.search(query.trim(), p, records, system, database)
+        const res = await window.api.search(
+          query.trim(),
+          p,
+          DEEP_FETCH,
+          system,
+          database,
+          buildServerFilters()
+        )
         if (myReq !== searchSeq) return // mezitím odstartovalo novější hledání
         const total = res.totalFiltered || res.songs.length
-        totalPages = Math.max(1, Math.ceil(total / records))
-        set((s) => ({
-          deepSongs: [...s.deepSongs, ...res.songs],
-          deepScannedPages: p,
-          deepTotalPages: Math.min(totalPages, DEEP_MAX_PAGES),
-          totalFiltered: total,
-          loading: false // od první stránky ukazujeme přibývající shody živě
-        }))
+        totalPages = Math.max(1, Math.ceil(total / DEEP_FETCH))
+        set((s) => {
+          // Dedup napříč stránkami (v „Both" může tatáž píseň přijít z RV i
+          // Encore na různých stránkách; IPC dedupuje jen v rámci jedné stránky).
+          const seen = new Set(s.deepSongs.map((x) => x.key))
+          const merged = s.deepSongs.concat(res.songs.filter((x) => !seen.has(x.key)))
+          return {
+            deepSongs: merged,
+            deepScannedPages: p,
+            deepTotalPages: Math.min(totalPages, DEEP_MAX_PAGES),
+            totalFiltered: total,
+            loading: false // od první stránky ukazujeme přibývající shody živě
+          }
+        })
         if (res.songs.length === 0) break
       }
       if (myReq !== searchSeq) return
@@ -319,15 +382,9 @@ export const useStore = create<AppState>((set, get) => {
 
   /** Po změně filtrů zapne/vypne deep režim (a případně spustí sken). */
   const syncDeepMode = (): void => {
-    const s = get()
-    const active = hasClientFilters()
-    const searchable = !!s.query.trim() || s.database === 'enchor'
-    if (active && !s.deep && searchable && (s.results.length > 0 || s.totalFiltered > 0)) {
-      void deepScan()
-    } else if (!active && s.deep) {
-      set({ deep: false, deepSongs: [], deepLoading: false, deepCapHit: false })
-      if (searchable) void get().doSearch(1)
-    }
+    // Po změně instrument/obtížnost filtru jen přenačti — `doSearch` sám vybere
+    // server vs. deep scan a browse vs. prázdno.
+    void get().doSearch(1)
   }
 
   return {
@@ -354,7 +411,6 @@ export const useStore = create<AppState>((set, get) => {
   diffMax: 6,
   charterFilter: '',
   albumFilter: '',
-  yearFilter: '',
   ownedKeys: new Set<string>(),
   hideOwned: false,
   sort: 'relevance',
@@ -374,6 +430,11 @@ export const useStore = create<AppState>((set, get) => {
   deepTotalPages: 1,
   deepLoading: false,
   deepCapHit: false,
+  filters: {},
+  filterOptions: null,
+  // Úvodní obrazovka = rovnou procházení katalogu, ale panel filtrů ZAVŘENÝ
+  // (browse jede i tak — prázdný dotaz = katalog). Otevře se až na klik „Filters".
+  showFilters: false,
   previewKey: null,
   previewState: 'idle',
   previewLabel: null,
@@ -470,8 +531,18 @@ export const useStore = create<AppState>((set, get) => {
       set({ deep: false, deepSongs: [], deepLoading: false, deepCapHit: false })
     }
   },
-  setDatabase: (d) => set({ database: d }),
-  setSystem: (s) => set({ system: s }),
+  setDatabase: (d) => {
+    // Chorus Encore neumí žánr/rok/délku → při přepnutí na něj je vyčistíme, ať
+    // odznáček „Filters" nelže a nezůstanou viset nefunkční filtry.
+    if (d === 'enchor') set({ database: d, filters: {} })
+    else set({ database: d })
+  },
+  setSystem: (s) => {
+    // Číselník filtrů (žánry/roky/délky) je pro každý systém jiný → vynutit
+    // znovunačtení, ať v dropdownech nezůstanou hodnoty z předchozího systému.
+    set({ system: s, filterOptions: null })
+    void get().loadFilterOptions()
+  },
   toggleInstrumentFilter: (id) => {
     set((s) => ({
       instrumentFilters: s.instrumentFilters.includes(id)
@@ -493,7 +564,6 @@ export const useStore = create<AppState>((set, get) => {
   },
   setCharterFilter: (v) => set({ charterFilter: v, selectedIndex: -1 }),
   setAlbumFilter: (v) => set({ albumFilter: v, selectedIndex: -1 }),
-  setYearFilter: (v) => set({ yearFilter: v, selectedIndex: -1 }),
   setHideOwned: (v) => set({ hideOwned: v, selectedIndex: -1 }),
   loadOwnedKeys: async () => {
     try {
@@ -504,6 +574,9 @@ export const useStore = create<AppState>((set, get) => {
     }
   },
   setSort: (s) => set({ sort: s, selectedIndex: -1 }),
+  /** Kanonický „clear all" — vyčistí VŠECHNY filtry (nástroj, obtížnost,
+   *  žánr/rok/délka, charter, album, skrýt vlastněné) a přenačte. Volá ho jak
+   *  chip v liště, tak tlačítko v panelu, ať mají stejný výsledek. */
   clearFilters: () => {
     set({
       instrumentFilters: [],
@@ -511,10 +584,30 @@ export const useStore = create<AppState>((set, get) => {
       diffMax: 6,
       charterFilter: '',
       albumFilter: '',
-      yearFilter: '',
+      hideOwned: false,
+      filters: {},
       selectedIndex: -1
     })
-    syncDeepMode()
+    void get().doSearch(1)
+  },
+  setFilter: (key, values) => {
+    set((s) => ({ filters: { ...s.filters, [key]: values }, page: 1, selectedIndex: -1 }))
+    void get().doSearch(1)
+  },
+  loadFilterOptions: async () => {
+    if (get().filterOptions) return
+    try {
+      const opts = await window.api.getFilterOptions(get().system)
+      set({ filterOptions: opts })
+    } catch {
+      /* číselník nedostupný → panel prostě nebude mít předvyplněné volby */
+    }
+  },
+  setShowFilters: (v) => {
+    set({ showFilters: v })
+    if (v) void get().loadFilterOptions()
+    // Jen ukázat/schovat ovládání filtrů — výsledky necháváme být (procházení
+    // běží dál, prázdný dotaz = katalog). Žádné vysypání do prázdna.
   },
   setSelectedIndex: (i) => set({ selectedIndex: i }),
   setShowSettings: (v) => set({ showSettings: v }),
@@ -527,23 +620,34 @@ export const useStore = create<AppState>((set, get) => {
   doSearch: async (page = 1) => {
     get().stopPreview() // nová sada výsledků → ať nehraje ukázka „naslepo"
     const { query, system, database, records } = get()
-    // Prázdný dotaz normálně nic nehledá. Výjimka: Chorus Encore umí „browse all"
-    // (prázdný dotaz vrátí celou databázi), takže u něj prázdné hledání pustíme —
-    // díky tomu funguje i stránkování po „Surprise me" na Encore.
-    if (!query.trim() && database !== 'enchor') {
+    const browsing = browseActive()
+    // Prázdný dotaz normálně nic nehledá. Výjimky: Chorus Encore umí „browse all"
+    // (prázdný dotaz vrátí celou databázi) a aktivní advanced filtry (RhythmVerse
+    // `list` = procházení celého katalogu, volitelně zúžené filtry).
+    if (!browsing && !query.trim() && database !== 'enchor') {
       searchSeq++ // zneplatní i případné běžící hledání
       set({ results: [], totalFiltered: 0, error: null, loading: false, deep: false, deepSongs: [] })
       return
     }
-    // Aktivní filtr nástroje/obtížnosti → deep scan (server filtrovat neumí,
-    // takže stáhneme všechny stránky a stránkujeme lokálně nad shodami).
-    if (hasClientFilters()) {
+    // Jen to, co server neumí (tier / Encore multi-nástroj) → deep scan.
+    // Jeden nástroj i víc nástrojů na RhythmVerse zvládne server (AND) → jde
+    // normální serverové stránkování s plným pokrytím a bez záplavy requestů.
+    if (needsDeepScan()) {
       return deepScan()
     }
     const myReq = ++searchSeq
     set({ loading: true, error: null })
     try {
-      const res = await window.api.search(query.trim(), page, records, system, database)
+      // Serverové filtry posíláme VŽDY (i u textového hledání), ať se instrument
+      // filtruje serverově, ne až klientsky nad stránkou.
+      const res = await window.api.search(
+        query.trim(),
+        page,
+        records,
+        system,
+        database,
+        buildServerFilters()
+      )
       if (myReq !== searchSeq) return // mezitím odstartovalo novější hledání
       set({
         results: res.songs,
@@ -568,58 +672,6 @@ export const useStore = create<AppState>((set, get) => {
     s.stopPreview() // změna stránky → zastav ukázku (řádek zmizí ze zobrazení)
     if (s.deep) set({ page: Math.max(1, p), selectedIndex: -1 })
     else void s.doSearch(p)
-  },
-
-  surprise: async () => {
-    get().stopPreview()
-    const { system, database, records } = get()
-    // Chorus Encore umí „browse all" přes prázdný dotaz → opravdový náhodný výběr
-    // z celé databáze. RhythmVerse prázdný dotaz odmítá, a v „both" by RV část
-    // vypadla, proto tam použijeme náhodné seed slovo z poolu.
-    const seed =
-      database === 'enchor' ? '' : SURPRISE_SEEDS[Math.floor(Math.random() * SURPRISE_SEEDS.length)]
-    const myReq = ++searchSeq
-    // Surprise je záměrně „mělký" (jedna náhodná stránka) — deep režim vypnout.
-    set({
-      query: seed,
-      loading: true,
-      error: null,
-      selectedKeys: [],
-      deep: false,
-      deepSongs: [],
-      deepLoading: false,
-      deepCapHit: false
-    })
-    try {
-      // 1) první stránka → zjisti počet výsledků a spočítej rozsah stránek.
-      const first = await window.api.search(seed, 1, records, system, database)
-      if (myReq !== searchSeq) return // mezitím odstartovalo novější hledání
-      const total = first.totalFiltered || first.songs.length
-      const totalPages = Math.max(1, Math.ceil(total / records))
-      // 2) náhodná stránka (cap ať offset není extrémní ani u velkých katalogů),
-      //    pak zamíchej řádky. Když krajní stránka vyjde prázdná, vrať se na první.
-      const rndPage = 1 + Math.floor(Math.random() * Math.min(totalPages, 400))
-      let res =
-        rndPage === 1 ? first : await window.api.search(seed, rndPage, records, system, database)
-      if (myReq !== searchSeq) return
-      if (res.songs.length === 0) res = first
-      const shuffled = [...res.songs]
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-      }
-      set({
-        results: shuffled,
-        totalFiltered: res.totalFiltered,
-        page: res.page,
-        loading: false,
-        selectedIndex: -1,
-        selectedKeys: []
-      })
-    } catch (e) {
-      if (myReq !== searchSeq) return
-      set({ loading: false, error: e instanceof Error ? e.message : String(e) })
-    }
   },
 
   pickSearch: async (term) => {

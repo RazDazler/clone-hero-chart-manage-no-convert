@@ -1,16 +1,6 @@
 import type { InstrumentDifficulties, SongResult } from '../../shared/types'
 import type { IconName } from './components/Icon'
 
-// „Surprise me" — RhythmVerse live-search vyžaduje dotaz (prázdný/1 znak = error),
-// proto náhodnost stavíme na poolu běžných slov, která vracejí spoustu výsledků.
-// Klik → náhodné seed slovo → náhodná stránka → zamíchané řádky.
-export const SURPRISE_SEEDS: string[] = [
-  'rock', 'metal', 'love', 'live', 'night', 'fire', 'time', 'heart', 'world', 'blood',
-  'dead', 'star', 'blue', 'black', 'dream', 'light', 'cover', 'acoustic', 'punk', 'sun',
-  'moon', 'home', 'road', 'war', 'angel', 'city', 'rain', 'gold', 'king', 'alive',
-  'run', 'baby', 'soul', 'wild', 'lost', 'ghost', 'dance', 'song', 'sky', 'storm'
-]
-
 // Discovery chipy pro prázdný stav — kurátorské populární kapely, které na RV
 // spolehlivě vrací hodně chartů. (Žánr ani rok RV API nefiltruje, jen text
 // v názvu/umělci, takže žánrové/dekádové chipy by byly zavádějící.)

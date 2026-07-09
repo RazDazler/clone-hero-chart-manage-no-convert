@@ -64,6 +64,44 @@ export interface SearchResponse {
   records: number
 }
 
+/**
+ * Serverové filtry pro „advanced search / browse". Hodnoty jsou normalizované
+ * (nezávislé na providerovi); klient je namapuje na konkrétní API:
+ *  - RhythmVerse: `genre[]`, `instrument[]`, `difficulties[]` (x/h/m/e),
+ *    `decade[]`, `year[]`, `song_length[]` na endpoint `songfiles/list`
+ *    (browse bez textu) nebo `search/live` (s textem).
+ *  - Chorus Encore: server umí jen `instrument` + `difficulty`; ostatní ignoruje.
+ */
+export interface SearchFilters {
+  /** ID žánru (RhythmVerse číselník: 'rock', 'poprock', …). */
+  genre?: string[]
+  /** 'guitar' | 'bass' | 'drums' | 'vocals' | 'keys' */
+  instrument?: string[]
+  /** Zahrané úrovně: 'expert' | 'hard' | 'medium' | 'easy'. */
+  difficulty?: string[]
+  /** Dekáda (RhythmVerse: '80' = 80. léta). */
+  decade?: string[]
+  /** Konkrétní rok vydání. */
+  year?: string[]
+  /** Rozsah délky (RhythmVerse: 'short_range' … 'epic_range'). */
+  songLength?: string[]
+}
+
+export interface FilterOption {
+  id: string
+  label: string
+}
+
+/** Volby do dropdownů advanced panelu (z RhythmVerse číselníku). */
+export interface FilterOptions {
+  genre: FilterOption[]
+  instrument: FilterOption[]
+  difficulty: FilterOption[]
+  decade: FilterOption[]
+  year: FilterOption[]
+  songLength: FilterOption[]
+}
+
 export type JobStage =
   | 'queued'
   | 'resolving'
@@ -251,8 +289,11 @@ export interface RendererApi {
     page: number,
     records: number,
     system?: RhythmVerseSystem,
-    database?: Database
+    database?: Database,
+    filters?: SearchFilters
   ): Promise<SearchResponse>
+  /** Volby filtrů (žánry, dekády, roky…) pro advanced panel; z RhythmVerse číselníku. */
+  getFilterOptions(system?: RhythmVerseSystem): Promise<FilterOptions>
   enqueueDownload(song: SongResult, targetSubfolder?: string): Promise<string>
   /** Spustí pipeline pro lokální soubor (drag-and-drop z disku). */
   enqueueLocalFile(

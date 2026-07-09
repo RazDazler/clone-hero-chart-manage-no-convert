@@ -226,7 +226,8 @@ export function Sidebar(): JSX.Element {
                 className={`side-item ${system === sys.id ? 'side-item--on' : ''}`}
                 onClick={() => {
                   setSystem(sys.id)
-                  if (query.trim()) void doSearch(1)
+                  // Re-search i v browse režimu (prázdný dotaz), ne jen u textu.
+                  void doSearch(1)
                 }}
               >
                 {sys.label}

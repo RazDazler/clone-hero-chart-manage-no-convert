@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { SongResult } from '../../../shared/types'
 import { useStore } from '../store'
+import { FilterPanel } from './FilterPanel'
 import { Icon } from './Icon'
 
 // Pozn. (redesign v2): Database/System přepínače žijí v levém Sidebaru.
@@ -39,6 +40,9 @@ export function SearchBar(): JSX.Element {
   const loading = useStore((s) => s.loading)
   const setQuery = useStore((s) => s.setQuery)
   const doSearch = useStore((s) => s.doSearch)
+  const filters = useStore((s) => s.filters)
+  const showFilters = useStore((s) => s.showFilters)
+  const setShowFilters = useStore((s) => s.setShowFilters)
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
 
@@ -142,6 +146,10 @@ export function SearchBar(): JSX.Element {
     query.trim().length >= 2 &&
     (suggestLoading || suggest.length > 0 || suggestTotal === 0)
 
+  const activeFilterCount = (['genre', 'year', 'songLength'] as const).filter(
+    (k) => (filters[k]?.length ?? 0) > 0
+  ).length
+
   return (
     <div className="searchbar">
       <div className="searchbar__row searchbar__row--input">
@@ -173,6 +181,9 @@ export function SearchBar(): JSX.Element {
                   setSuggestTotal(0)
                   setSuggestOpen(false)
                   inputRef.current?.focus()
+                  // Prázdný dotaz → přenačti (browse katalogu / s aktivními filtry),
+                  // ať nezůstane viset stará sada zfiltrovaná jen po stránce.
+                  void doSearch(1)
                 }}
               >
                 <Icon name="close" size={13} />
@@ -231,10 +242,25 @@ export function SearchBar(): JSX.Element {
             </div>
           ) : null}
         </div>
+        <button
+          type="button"
+          className={`searchbar__filters ${showFilters ? 'searchbar__filters--open' : ''} ${
+            activeFilterCount > 0 ? 'searchbar__filters--active' : ''
+          }`}
+          onClick={() => setShowFilters(!showFilters)}
+          title="Advanced filters — browse by genre, year and length"
+        >
+          <Icon name="filter" size={15} />
+          <span>Filters</span>
+          {activeFilterCount > 0 ? (
+            <span className="searchbar__filters-badge">{activeFilterCount}</span>
+          ) : null}
+        </button>
         <button className="searchbar__go" onClick={runFullSearch} disabled={loading}>
           {loading ? '…' : 'Search'}
         </button>
       </div>
+      <FilterPanel />
     </div>
   )
 }
