@@ -8,7 +8,8 @@ import type {
   RhythmVerseSystem,
   SearchFilters,
   SearchResponse,
-  SongResult
+  SongResult,
+  SortKey
 } from '../shared/types'
 import { getConfig, setConfig } from './core/config'
 import { search as searchEnchor } from './core/enchor'
@@ -67,17 +68,29 @@ export function registerIpc(): void {
       records: number,
       system?: RhythmVerseSystem,
       database?: Database,
-      filters?: SearchFilters
+      filters?: SearchFilters,
+      sort?: SortKey
     ): Promise<SearchResponse> => {
       const db: Database = database ?? 'rhythmverse'
       if (db === 'enchor') {
-        return searchEnchor(text, page, records, filters)
+        return searchEnchor(text, page, records, filters, sort)
       }
       if (db === 'both') {
+        // Žánr / rok / délku umí serverově jen RhythmVerse. Když je některý
+        // aktivní, Encore by vrátil NEfiltrovaný katalog a „prosákl" do výsledků
+        // (a nafoukl by total) → v tom případě procházej jen RhythmVerse.
+        const rvOnlyFilter = !!(
+          filters?.genre?.length ||
+          filters?.year?.length ||
+          filters?.songLength?.length
+        )
+        if (rvOnlyFilter) {
+          return searchRhythmverse(text, page, records, system ?? 'ch', filters, sort)
+        }
         // Spojený režim: stáhne první stránku z obou a dedupuje.
         const [rv, en] = await Promise.allSettled([
-          searchRhythmverse(text, page, records, system ?? 'ch', filters),
-          searchEnchor(text, page, records, filters)
+          searchRhythmverse(text, page, records, system ?? 'ch', filters, sort),
+          searchEnchor(text, page, records, filters, sort)
         ])
         const rvSongs = rv.status === 'fulfilled' ? rv.value.songs : []
         const enSongs = en.status === 'fulfilled' ? en.value.songs : []
@@ -101,7 +114,7 @@ export function registerIpc(): void {
           (en.status === 'fulfilled' ? en.value.totalFiltered : 0)
         return { songs: merged, totalFiltered: total, page, records }
       }
-      return searchRhythmverse(text, page, records, system ?? 'ch', filters)
+      return searchRhythmverse(text, page, records, system ?? 'ch', filters, sort)
     }
   )
 

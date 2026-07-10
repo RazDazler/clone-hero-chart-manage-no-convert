@@ -60,7 +60,8 @@ function deriveLocalSong(path: string): SongResult {
     downloadUrl: null,
     downloadPageUrl: null,
     externalUrl: null,
-    sizeBytes: null
+    sizeBytes: null,
+    downloads: null
   }
 }
 

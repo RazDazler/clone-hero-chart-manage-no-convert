@@ -3,6 +3,7 @@ import type { DownloadJob, SongResult } from '../../../shared/types'
 import { getPreviewAudioEl, useStore } from '../store'
 import {
   detectManualHost,
+  formatDownloads,
   formatLabel,
   formatLength,
   type ManualHost
@@ -275,6 +276,14 @@ function SongRowBase({
           {song.charter ? (
             <span className="song__charter">
               <Icon name="charter" size={12} /> <RichText text={song.charter} />
+            </span>
+          ) : null}
+          {song.downloads != null && song.downloads > 0 ? (
+            <span
+              className="song__dls"
+              title={`${formatDownloads(song.downloads)} downloads on RhythmVerse`}
+            >
+              <Icon name="download" size={12} /> {formatDownloads(song.downloads)}
             </span>
           ) : null}
         </div>

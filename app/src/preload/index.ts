@@ -20,6 +20,7 @@ import type {
   SongDetail,
   SongMeta,
   SongResult,
+  SortKey,
   UpdateAvailable,
   UpdateCheckResult
 } from '../shared/types'
@@ -31,7 +32,8 @@ const api = {
     records: number,
     system?: RhythmVerseSystem,
     database?: Database,
-    filters?: SearchFilters
+    filters?: SearchFilters,
+    sort?: SortKey
   ) =>
     ipcRenderer.invoke(
       'search',
@@ -40,7 +42,8 @@ const api = {
       records,
       system,
       database,
-      filters
+      filters,
+      sort
     ) as Promise<SearchResponse>,
   getFilterOptions: (system?: RhythmVerseSystem) =>
     ipcRenderer.invoke('search:filterOptions', system) as Promise<FilterOptions>,

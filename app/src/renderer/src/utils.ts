@@ -17,6 +17,12 @@ export function formatLength(seconds: number | null): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+/** Počet stažení s oddělovači tisíců (aktuální hodnota z API): 20100 → "20,100". */
+export function formatDownloads(n: number | null): string {
+  if (n === null || !Number.isFinite(n) || n < 0) return ''
+  return n.toLocaleString('en-US')
+}
+
 export function formatLabel(format: string | null): string {
   if (!format) return '?'
   const map: Record<string, string> = {

@@ -53,6 +53,9 @@ export interface SongResult {
   downloadPageUrl: string | null
   externalUrl: string | null
   sizeBytes: number | null
+  /** Počet stažení souboru (RhythmVerse `file.downloads`, živě aktuální). Chorus
+   *  Encore počet stažení nevystavuje → null. */
+  downloads: number | null
   /** Odkaz na Google Drive složku, kde chart leží (charterova sbírka). Jen Encore. */
   driveFolderUrl?: string | null
 }
@@ -86,6 +89,17 @@ export interface SearchFilters {
   /** Rozsah délky (RhythmVerse: 'short_range' … 'epic_range'). */
   songLength?: string[]
 }
+
+/**
+ * Řazení výsledků (normalizované, nezávislé na providerovi). Klient mapuje na
+ * konkrétní API:
+ *  - RhythmVerse: `sort[0][sort_by]` (title/artist/length/downloads/update_date)
+ *    + `sort[0][sort_order]` (ASC/DESC).
+ *  - Chorus Encore: `sort: { type, direction }` (name/artist/length/modifiedTime).
+ * 'relevance' = neposílá se nic (server default / textová relevance). 'downloads'
+ * umí jen RhythmVerse — Encore počet stažení nemá, takže tam padne na default.
+ */
+export type SortKey = 'relevance' | 'title' | 'artist' | 'downloads' | 'newest' | 'length'
 
 export interface FilterOption {
   id: string
@@ -290,7 +304,8 @@ export interface RendererApi {
     records: number,
     system?: RhythmVerseSystem,
     database?: Database,
-    filters?: SearchFilters
+    filters?: SearchFilters,
+    sort?: SortKey
   ): Promise<SearchResponse>
   /** Volby filtrů (žánry, dekády, roky…) pro advanced panel; z RhythmVerse číselníku. */
   getFilterOptions(system?: RhythmVerseSystem): Promise<FilterOptions>

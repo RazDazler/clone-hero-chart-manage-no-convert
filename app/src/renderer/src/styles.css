@@ -2006,6 +2006,20 @@ body {
   max-width: 180px;
 }
 
+/* Počet stažení (jen RhythmVerse) — decentní stat vedle charteru. */
+.song__dls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.song__dls svg {
+  opacity: 0.7;
+}
+
 /* ---------- Instruments / difficulty dots ---------- */
 .song__diffs {
   flex-shrink: 0;
@@ -3821,6 +3835,58 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* „Surprise me" — hravé tlačítko pod seznamy (objevení náhodného chartu). */
+.side-surprise {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+.side-surprise:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.35);
+}
+.side-surprise:active {
+  transform: translateY(1px);
+}
+.side-surprise__dice {
+  color: var(--accent);
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+.side-surprise:hover .side-surprise__dice {
+  transform: rotate(-18deg) scale(1.08);
+}
+.side-surprise__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.2;
+}
+.side-surprise__title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.side-surprise__sub {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+@media (prefers-reduced-motion: reduce) {
+  .side-surprise__dice {
+    transition: none;
+  }
+  .side-surprise:hover .side-surprise__dice {
+    transform: none;
+  }
+}
 /* Label vlevo + tenká oddělovací čára doprava (na jeho úrovni). */
 .side-label {
   display: flex;
@@ -5201,9 +5267,11 @@ body {
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.2;
   mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* feColorMatrix: R-kanál šumu zkopíruj do R=G=B (šedá, žádné barevné tečky)
+     a alfu nastav natvrdo na 1 → plné, monochromatické zrno. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Přepnutí proměnných: akcent → světle šedá/bílá, plochy → grafit. */
@@ -5480,6 +5548,28 @@ body {
 [data-theme='graphite'] .side-indicator {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.4);
   background: linear-gradient(180deg, #2a2b30 0%, #1d1e22 100%);
+}
+
+/* „Surprise me" — vyryté do motivu jako boxy nad ním, ale s jemným akcentovým
+   nádechem (světlejší grafitová plocha + akcentový lem), ať je poznat, že je to
+   AKCE, a nesplývá s „důlky" Database/System. */
+[data-theme='graphite'] .side-surprise {
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--accent-rgb), 0.02) 100%),
+    rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.06), inset 0 -2px 6px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+[data-theme='graphite'] .side-surprise:hover {
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.14) 0%, rgba(var(--accent-rgb), 0.05) 100%),
+    rgba(0, 0, 0, 0.28);
+  border-color: rgba(var(--accent-rgb), 0.32);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), inset 0 -2px 6px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.12), 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-theme='graphite'] .side-surprise:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 /* Zapuštěné vstupy (search, pole v nastavení, difficulty selecty) — vyryté. */

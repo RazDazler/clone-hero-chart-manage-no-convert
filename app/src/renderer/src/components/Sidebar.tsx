@@ -38,6 +38,7 @@ export function Sidebar(): JSX.Element {
   const setSystem = useStore((s) => s.setSystem)
   const query = useStore((s) => s.query)
   const doSearch = useStore((s) => s.doSearch)
+  const surpriseMe = useStore((s) => s.surpriseMe)
 
   // Launch / focus her — přesunuto z TitleBaru, logika beze změny.
   const [runningGame, setRunningGame] = useState<Game>(null)
@@ -236,6 +237,21 @@ export function Sidebar(): JSX.Element {
           </div>
         </div>
       ) : null}
+
+      {/* „Surprise me" — skok na náhodné místo katalogu + zvýraznění písničky.
+          Respektuje aktivní dotaz i filtry (překvapení v rámci toho, co hledáš). */}
+      <button
+        type="button"
+        className="side-surprise"
+        onClick={() => surpriseMe()}
+        title="Jump to a random spot in the catalogue and highlight a song to try"
+      >
+        <Icon name="dice" size={18} className="side-surprise__dice" />
+        <span className="side-surprise__text">
+          <span className="side-surprise__title">Surprise me</span>
+          <span className="side-surprise__sub">Discover a random chart</span>
+        </span>
+      </button>
 
       <div className="side-footer">
         {downloaded && available ? (

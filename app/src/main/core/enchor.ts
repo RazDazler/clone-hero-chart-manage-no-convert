@@ -17,7 +17,8 @@ import type {
   InstrumentDifficulties,
   SearchFilters,
   SearchResponse,
-  SongResult
+  SongResult,
+  SortKey
 } from '../../shared/types'
 
 const API = 'https://api.enchor.us'
@@ -111,6 +112,7 @@ function normalize(c: EnchorChart): SongResult {
     downloadPageUrl: md5 ? `https://www.enchor.us/chart/${md5}` : null,
     externalUrl: null,
     sizeBytes: null, // API ji nevrací; .sng je obvykle 5–50 MB
+    downloads: null, // Chorus Encore počet stažení nevystavuje
     // Google Drive složka, kde chart leží = charterova sbírka. Encore web z toho
     // dělá `drive.google.com/open?id=…`; `parentFolderId` je složka nad chartem.
     driveFolderUrl: c.parentFolderId
@@ -120,16 +122,30 @@ function normalize(c: EnchorChart): SongResult {
 }
 
 /**
+ * Normalizované řazení → Encore `sort: { type, direction }` (ověřeno proti
+ * bundlu i živě). Platné `type`: name/artist/album/genre/year/length/charter/
+ * modifiedTime. 'downloads' Encore NEMÁ → padne na default (žádný sort).
+ */
+const ENC_SORT: Partial<Record<SortKey, { type: string; direction: 'asc' | 'desc' }>> = {
+  title: { type: 'name', direction: 'asc' },
+  artist: { type: 'artist', direction: 'asc' },
+  length: { type: 'length', direction: 'desc' },
+  newest: { type: 'modifiedTime', direction: 'desc' }
+}
+
+/**
  * Vyhledávání / procházení Chorus Encore. Prázdný `search` vrací celý katalog
  * (browse all). Server umí filtrovat jen `instrument` + `difficulty` (ověřeno);
  * ostatní filtry (žánr, dekáda…) neumí, takže je ignorujeme (v UI jsou pro
  * Encore zašedlé). Encore bere jednu hodnotu, takže posíláme první vybranou.
+ * Řazení jde serverově přes `sort` (kromě downloads, které Encore nemá).
  */
 export async function search(
   text: string,
   page = 1,
   records = 25,
-  filters?: SearchFilters
+  filters?: SearchFilters,
+  sort?: SortKey
 ): Promise<SearchResponse> {
   const body: Record<string, unknown> = {
     search: text,
@@ -138,6 +154,8 @@ export async function search(
   }
   if (filters?.instrument?.length) body.instrument = filters.instrument[0]
   if (filters?.difficulty?.length) body.difficulty = filters.difficulty[0]
+  const sortSpec = sort ? ENC_SORT[sort] : undefined
+  if (sortSpec) body.sort = sortSpec
 
   const res = await fetch(`${API}/search`, {
     method: 'POST',

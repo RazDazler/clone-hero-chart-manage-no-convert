@@ -48,6 +48,7 @@ export type IconName =
   | 'play'
   | 'pause'
   | 'previewOff'
+  | 'dice'
 
 // Obsah jednotlivých ikon (viewBox 0 0 24 24). Stroke dědí currentColor.
 const PATHS: Record<IconName, JSX.Element> = {
@@ -237,6 +238,17 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <circle cx="12" cy="12" r="9" />
       <line x1="5.6" y1="5.6" x2="18.4" y2="18.4" />
+    </>
+  ),
+  // hrací kostka (5) – „Surprise me" / náhodný výběr
+  dice: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="3.5" />
+      <circle cx="8.5" cy="8.5" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="8.5" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="8.5" cy="15.5" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="15.5" r="1.15" fill="currentColor" stroke="none" />
     </>
   )
 }

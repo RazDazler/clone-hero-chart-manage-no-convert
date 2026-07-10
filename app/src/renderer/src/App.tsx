@@ -47,6 +47,7 @@ export function App(): JSX.Element {
   const ownedKeys = useStore((s) => s.ownedKeys)
   const hideOwned = useStore((s) => s.hideOwned)
   const sort = useStore((s) => s.sort)
+  const surprise = useStore((s) => s.surprise)
 
   // Deep režim: filtr nástroje/obtížnosti → zdrojem je celý stažený dotaz
   // (všechny stránky) a stránkuje se lokálně nad shodami.
@@ -60,6 +61,9 @@ export function App(): JSX.Element {
 
   // Klientský filtr + řazení (v deep režimu nad CELÝM dotazem).
   const filteredAll = useMemo(() => {
+    // „Surprise" = jedna vylosovaná písnička; ukaž ji tak jak je (nástroj už
+    // vyřešil server, tier/charter/album klientsky neaplikuj, ať nezmizí).
+    if (surprise) return source
     const cf = charterFilter.trim().toLowerCase()
     const af = albumFilter.trim().toLowerCase()
     const diffNarrowed = diffMin > 0 || diffMax < 6
@@ -87,15 +91,23 @@ export function App(): JSX.Element {
       if (hideOwned && ownedKeys.has(songKey(song.artist, song.title))) return false
       return true
     })
-    if (sort === 'relevance') return filtered
+    // Řazení jde PRIMÁRNĚ serverově (viz store + API klienti), takže stránky
+    // sedí A-Z napříč celým katalogem, ne jen v rámci jedné stránky. Klientsky
+    // dorovnáváme jen „Both" režim — tam se slučují dvě samostatně stránkované
+    // databáze, které server globálně seřadit nedokáže. (downloads/newest klient
+    // neumí — SongResult nemá to pole — tak se u nich necháme na server pořadí.)
+    const clientSortable = sort === 'title' || sort === 'artist' || sort === 'length'
+    if (database !== 'both' || !clientSortable) return filtered
     const arr = [...filtered]
     if (sort === 'title') arr.sort((a, b) => a.title.localeCompare(b.title))
     else if (sort === 'artist')
       arr.sort((a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title))
-    else if (sort === 'length') arr.sort((a, b) => (b.lengthSeconds ?? 0) - (a.lengthSeconds ?? 0))
+    else arr.sort((a, b) => (b.lengthSeconds ?? 0) - (a.lengthSeconds ?? 0))
     return arr
   }, [
     source,
+    surprise,
+    database,
     instrumentFilters,
     diffMin,
     diffMax,
@@ -401,7 +413,14 @@ export function App(): JSX.Element {
             </label>
           ) : null}
           <span className="resultsbar__count">
-            {deep ? (
+            {surprise ? (
+              <>
+                <Icon name="dice" size={14} /> Surprise pick{' '}
+                <span className="resultsbar__scan">
+                  from {totalFiltered.toLocaleString('en-US')} charts — click Surprise me again
+                </span>
+              </>
+            ) : deep ? (
               // Deep režim: počítáme SHODY po filtru, ne surové výsledky serveru.
               <>
                 <strong>{filteredAll.length}</strong> matching songs
@@ -488,7 +507,7 @@ export function App(): JSX.Element {
       </div>
       </div>
 
-      {source.length > 0 && !loading ? (
+      {source.length > 0 && !loading && !surprise ? (
         <Pager visibleCount={visible.length} matchTotal={deep ? filteredAll.length : undefined} />
       ) : null}
         </main>

@@ -6,11 +6,12 @@ import type {
   FilterOptions,
   RhythmVerseSystem,
   SearchFilters,
-  SongResult
+  SongResult,
+  SortKey
 } from '../../shared/types'
 import { isAutoDownloadable } from './utils'
 
-export type SortKey = 'relevance' | 'title' | 'artist' | 'length'
+export type { SortKey } from '../../shared/types'
 
 interface AppState {
   query: string
@@ -49,6 +50,11 @@ interface AppState {
   hideOwned: boolean
   // Řazení výsledků
   sort: SortKey
+
+  // ── „Surprise me" ────────────────────────────────────────────────────────
+  /** Zobrazuje se právě jedna náhodně vylosovaná písnička? Jakékoli běžné
+   *  hledání/procházení tento režim zruší. */
+  surprise: boolean
 
   // Oficiální DLC – dotaz na otevření obchodu
   marketplacePrompt: SongResult | null
@@ -117,6 +123,9 @@ interface AppState {
   setHideOwned: (v: boolean) => void
   loadOwnedKeys: () => Promise<void>
   setSort: (s: SortKey) => void
+  /** „Surprise me" — vylosuje JEDNU náhodnou písničku z celého právě prohlíženého
+   *  výběru (respektuje filtr nástroje) a zobrazí ji. */
+  surpriseMe: () => void
   clearFilters: () => void
   // ── Advanced filtry ──
   /** Nastaví jeden filtr advanced panelu a hned přenačte výsledky (auto-apply). */
@@ -337,7 +346,8 @@ export const useStore = create<AppState>((set, get) => {
       error: null,
       page: 1,
       selectedIndex: -1,
-      selectedKeys: []
+      selectedKeys: [],
+      surprise: false
     })
     try {
       let totalPages = 1
@@ -348,7 +358,8 @@ export const useStore = create<AppState>((set, get) => {
           DEEP_FETCH,
           system,
           database,
-          buildServerFilters()
+          buildServerFilters(),
+          get().sort
         )
         if (myReq !== searchSeq) return // mezitím odstartovalo novější hledání
         const total = res.totalFiltered || res.songs.length
@@ -414,6 +425,7 @@ export const useStore = create<AppState>((set, get) => {
   ownedKeys: new Set<string>(),
   hideOwned: false,
   sort: 'relevance',
+  surprise: false,
   marketplacePrompt: null,
   pendingSong: null,
   folders: [],
@@ -533,9 +545,15 @@ export const useStore = create<AppState>((set, get) => {
   },
   setDatabase: (d) => {
     // Chorus Encore neumí žánr/rok/délku → při přepnutí na něj je vyčistíme, ať
-    // odznáček „Filters" nelže a nezůstanou viset nefunkční filtry.
-    if (d === 'enchor') set({ database: d, filters: {} })
-    else set({ database: d })
+    // odznáček „Filters" nelže a nezůstanou viset nefunkční filtry. Řazení podle
+    // stažení taky Encore neumí → padni zpět na default, ať UI nelže.
+    if (d === 'enchor') {
+      set({
+        database: d,
+        filters: {},
+        sort: get().sort === 'downloads' ? 'relevance' : get().sort
+      })
+    } else set({ database: d })
   },
   setSystem: (s) => {
     // Číselník filtrů (žánry/roky/délky) je pro každý systém jiný → vynutit
@@ -573,7 +591,79 @@ export const useStore = create<AppState>((set, get) => {
       /* nevadí — nápověda „In library" prostě nebude */
     }
   },
-  setSort: (s) => set({ sort: s, selectedIndex: -1 }),
+  // Řazení jde serverově (aby A-Z sedělo napříč VŠEMI stránkami, ne jen v rámci
+  // jedné) → změna sortu přenačte od stránky 1. V deep režimu se tím přeskenuje
+  // se správným server sortem, v „Both" navíc klient srovná sloučenou stránku.
+  setSort: (s) => {
+    set({ sort: s, selectedIndex: -1, page: 1 })
+    void get().doSearch(1)
+  },
+  surpriseMe: async () => {
+    get().stopPreview()
+    const { query, system, database, records, sort } = get()
+    // Serverové filtry (vč. nástroje) → losování respektuje zaškrtnuté nástroje.
+    const filters = buildServerFilters()
+    const myReq = ++searchSeq
+    set({ loading: true, error: null, surprise: true, selectedKeys: [] })
+    try {
+      // Kolik je výsledků v aktuálním výběru? Použij známý total (z browse), jinak
+      // se zeptej. RhythmVerse `list` stránkuje max ~249 stránek bez ohledu na
+      // `records`, takže hlubší písničky jdou dosáhnout jen přes VĚTŠÍ `records`.
+      let total = get().totalFiltered
+      if (!total || total < 1) {
+        const probe = await window.api.search(query.trim(), 1, 1, system, database, filters, sort)
+        if (myReq !== searchSeq) return
+        total = probe.totalFiltered || probe.songs.length
+      }
+      if (!total || total < 1) {
+        set({ loading: false, surprise: false, results: [], totalFiltered: 0 })
+        return
+      }
+      // Každé API stránkuje jinak (ověřeno živě), takže velikost stránky i rozsah
+      // losování volíme podle databáze:
+      //  - RhythmVerse: `records` klidně velké, ale stránkuje jen do ~249. stránky
+      //    → velké `pick`, aby se celý katalog vešel do ≤245 stránek.
+      //  - Chorus Encore: `per_page` MAX 250, ale stránkuje do hloubky bez stropu
+      //    → menší `pick` a náhodná stránka přes celý rozsah.
+      //  - Both: sdílené per_page ≤250 (kvůli Encore) a stránka ≤245 (kvůli RV cap).
+      let pick: number
+      let maxPage: number
+      if (database === 'enchor') {
+        pick = Math.min(250, Math.max(records, 100))
+        maxPage = Math.max(1, Math.ceil(total / pick))
+      } else if (database === 'both') {
+        pick = Math.min(250, Math.max(records, Math.ceil(total / 245)))
+        maxPage = Math.max(1, Math.min(245, Math.ceil(total / pick)))
+      } else {
+        pick = Math.min(600, Math.max(records, Math.ceil(total / 245)))
+        maxPage = Math.max(1, Math.min(245, Math.ceil(total / pick)))
+      }
+      const randPage = 1 + Math.floor(Math.random() * maxPage)
+      const res = await window.api.search(query.trim(), randPage, pick, system, database, filters, sort)
+      if (myReq !== searchSeq) return
+      const pool = res.songs
+      if (!pool.length) {
+        set({ loading: false, surprise: false })
+        return
+      }
+      const song = pool[Math.floor(Math.random() * pool.length)]
+      set({
+        results: [song],
+        totalFiltered: res.totalFiltered || total,
+        page: 1,
+        deep: false,
+        deepSongs: [],
+        deepLoading: false,
+        deepCapHit: false,
+        surprise: true,
+        loading: false,
+        selectedIndex: 0
+      })
+    } catch (e) {
+      if (myReq !== searchSeq) return
+      set({ loading: false, surprise: false, error: e instanceof Error ? e.message : String(e) })
+    }
+  },
   /** Kanonický „clear all" — vyčistí VŠECHNY filtry (nástroj, obtížnost,
    *  žánr/rok/délka, charter, album, skrýt vlastněné) a přenačte. Volá ho jak
    *  chip v liště, tak tlačítko v panelu, ať mají stejný výsledek. */
@@ -626,7 +716,7 @@ export const useStore = create<AppState>((set, get) => {
     // `list` = procházení celého katalogu, volitelně zúžené filtry).
     if (!browsing && !query.trim() && database !== 'enchor') {
       searchSeq++ // zneplatní i případné běžící hledání
-      set({ results: [], totalFiltered: 0, error: null, loading: false, deep: false, deepSongs: [] })
+      set({ results: [], totalFiltered: 0, error: null, loading: false, deep: false, deepSongs: [], surprise: false })
       return
     }
     // Jen to, co server neumí (tier / Encore multi-nástroj) → deep scan.
@@ -646,7 +736,8 @@ export const useStore = create<AppState>((set, get) => {
         records,
         system,
         database,
-        buildServerFilters()
+        buildServerFilters(),
+        get().sort
       )
       if (myReq !== searchSeq) return // mezitím odstartovalo novější hledání
       set({
@@ -659,7 +750,8 @@ export const useStore = create<AppState>((set, get) => {
         deep: false,
         deepSongs: [],
         deepLoading: false,
-        deepCapHit: false
+        deepCapHit: false,
+        surprise: false
       })
     } catch (e) {
       if (myReq !== searchSeq) return
@@ -854,7 +946,8 @@ export const useStore = create<AppState>((set, get) => {
       downloadUrl: null,
       downloadPageUrl: null,
       externalUrl: null,
-      sizeBytes: null
+      sizeBytes: null,
+      downloads: null
     }
     set({ pendingLocal: null, lastSubfolder: subfolder }) // guard proti dvojímu confirmu
     try {
