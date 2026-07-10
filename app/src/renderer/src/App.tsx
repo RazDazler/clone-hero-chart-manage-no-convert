@@ -183,9 +183,29 @@ export function App(): JSX.Element {
   useEffect(() => {
     visibleRef.current = visible
   }, [visible])
-  const handleRowSelect = useCallback((key: string) => {
-    const idx = visibleRef.current.findIndex((s) => s.key === key)
-    if (idx >= 0) useStore.getState().setSelectedIndex(idx)
+  // Klik do řádku řídí výběr (stejný `selectedKeys` jako checkboxy → „Download
+  // selected"): ctrl/meta = přepnout jednu, shift = rozsah od kotvy, jinak =
+  // vybrat jen tuto. `selectedIndex` slouží jako kotva (a fokus pro klávesnici).
+  const handleRowSelect = useCallback((key: string, ctrl: boolean, shift: boolean) => {
+    const list = visibleRef.current
+    const idx = list.findIndex((s) => s.key === key)
+    if (idx < 0) return
+    const st = useStore.getState()
+    if (shift && st.selectedIndex >= 0) {
+      const a = Math.min(st.selectedIndex, idx)
+      const b = Math.max(st.selectedIndex, idx)
+      st.setSelection(list.slice(a, b + 1).map((s) => s.key)) // kotva zůstává
+    } else if (ctrl) {
+      st.toggleSelected(key)
+      st.setSelectedIndex(idx)
+    } else if (st.selectedKeys.length === 1 && st.selectedKeys[0] === key) {
+      // Druhý klik na tutéž (jedinou vybranou) → odznač.
+      st.clearSelection()
+      st.setSelectedIndex(-1)
+    } else {
+      st.setSelection([key])
+      st.setSelectedIndex(idx)
+    }
   }, [])
   const handleRowDownload = useCallback((key: string) => {
     const song = visibleRef.current.find((s) => s.key === key)
@@ -271,10 +291,23 @@ export function App(): JSX.Element {
   // ani v našeptávači neodznačujeme.)
   useEffect(() => {
     const onDown = (e: MouseEvent): void => {
-      if (useStore.getState().selectedIndex < 0) return
+      const st = useStore.getState()
+      if (st.selectedIndex < 0 && st.selectedKeys.length === 0) return
       const t = e.target as HTMLElement | null
-      if (t?.closest('.tablewrap') || t?.closest('.modal-overlay') || t?.closest('.suggest')) return
-      useStore.getState().setSelectedIndex(-1)
+      // NEodznačuj jen na prvcích, kde s výběrem dál pracuješ (řádky, batch
+      // tlačítko, select-all, sort, modal, našeptávač). Prázdné plochy lišty /
+      // pageru / sidebaru / atd. výběr zruší.
+      if (
+        t?.closest('.tablewrap') ||
+        t?.closest('.batchbar') ||
+        t?.closest('.chk--selectall') ||
+        t?.closest('.dd--sort') ||
+        t?.closest('.modal-overlay') ||
+        t?.closest('.suggest')
+      )
+        return
+      st.setSelectedIndex(-1)
+      st.clearSelection()
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)

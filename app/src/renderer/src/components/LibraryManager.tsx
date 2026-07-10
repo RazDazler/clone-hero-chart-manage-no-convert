@@ -268,8 +268,15 @@ export function LibraryManager(): JSX.Element | null {
     entries.filter((e) => selected.has(e.name) && e.isSong).map((e) => relOf(e.name))
   const selSongCount = entries.filter((e) => selected.has(e.name) && e.isSong).length
 
+  // Plnohodnotný pod-modal (metadata / playlist / duplicates) → schovej Library
+  // manager pod ním, ať se nestohují modaly a nezdvojuje ztmavení pozadí.
+  const subModalOpen = metaFor !== null || playlistFor !== null || dupOpen || plmOpen
+
   return (
-    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && close(false)}>
+    <div
+      className={`modal-overlay ${subModalOpen ? 'modal-overlay--has-sub' : ''}`}
+      onMouseDown={(e) => e.target === e.currentTarget && close(false)}
+    >
       <div className="modal modal--library" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal__head">
           <h2>Library manager</h2>
@@ -551,22 +558,26 @@ export function LibraryManager(): JSX.Element | null {
           </div>
         ) : null}
 
-        {metaFor ? (
-          <SongMetaDialog
-            rel={metaFor.rel}
-            title={metaFor.title}
-            onClose={() => setMetaFor(null)}
-            onSaved={() => void load(cwd)}
-          />
-        ) : null}
-        {playlistFor ? (
-          <PlaylistDialog rels={playlistFor} onClose={() => setPlaylistFor(null)} />
-        ) : null}
-        {dupOpen ? (
-          <DuplicatesModal onClose={() => setDupOpen(false)} onChanged={() => void load(cwd)} />
-        ) : null}
-        {plmOpen ? <PlaylistManagerModal onClose={() => setPlmOpen(false)} /> : null}
       </div>
+
+      {/* Pod-modaly jsou uvnitř Library overlay (sourozenci boxu), ale se svým
+          PRŮHLEDNÝM overlayem — ztmavení pozadí drží pořád Library overlay, takže
+          při přepínání nic neprobliká. Box Library se skryje přes --has-sub. */}
+      {metaFor ? (
+        <SongMetaDialog
+          rel={metaFor.rel}
+          title={metaFor.title}
+          onClose={() => setMetaFor(null)}
+          onSaved={() => void load(cwd)}
+        />
+      ) : null}
+      {playlistFor ? (
+        <PlaylistDialog rels={playlistFor} onClose={() => setPlaylistFor(null)} />
+      ) : null}
+      {dupOpen ? (
+        <DuplicatesModal onClose={() => setDupOpen(false)} onChanged={() => void load(cwd)} />
+      ) : null}
+      {plmOpen ? <PlaylistManagerModal onClose={() => setPlmOpen(false)} /> : null}
     </div>
   )
 }

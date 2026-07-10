@@ -68,7 +68,6 @@ export function FilterBar(): JSX.Element {
               <button
                 key={inst.id}
                 className={`instbtn ${active ? 'instbtn--active' : ''}`}
-                title={`Only songs with: ${inst.label}`}
                 onClick={() => toggle(inst.id)}
                 style={
                   {
@@ -132,7 +131,6 @@ export function FilterBar(): JSX.Element {
       <button
         type="button"
         className={`dropzone ${dragOver ? 'dropzone--hover' : ''}`}
-        title="Drop a chart file here, or click to browse (.zip / .rar / .7z / .sng / CON). Rock Band CON files (also seen as .rb3con) and DTXMania songs are auto-converted."
         onClick={async () => {
           const picked = await window.api.chooseSongFile()
           if (picked) void openLocalDrop(picked.path, picked.name)

@@ -158,6 +158,8 @@ export interface AppConfig {
   /** Ruční škála UI (multiplikátor nad základem). 1 = výchozí. Násobí se s Windows DPI scalingem. */
   uiScale: number
   hotkeys: HotkeyConfig
+  /** Rotující tipy v horní liště (discoverability snadno přehlédnutelných funkcí). */
+  showTips: boolean
   /** Zobrazit malý reminder pill přes hru, když CH běží. */
   showReminder: boolean
   /** Roh obrazovky, kde se reminder zobrazí. */

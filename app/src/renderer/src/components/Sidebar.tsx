@@ -85,6 +85,14 @@ export function Sidebar(): JSX.Element {
     }
   }, [])
 
+  // Výsledek ruční kontroly („na latest verzi" / „nešlo zkontrolovat") sám zmizí
+  // po pár sekundách — jinak by visel až do restartu aplikace.
+  useEffect(() => {
+    if (checkState !== 'uptodate' && checkState !== 'error') return undefined
+    const id = setTimeout(() => setCheckState('idle'), 4000)
+    return () => clearTimeout(id)
+  }, [checkState])
+
   const checkUpdates = async (): Promise<void> => {
     setCheckState('checking')
     try {
@@ -157,7 +165,7 @@ export function Sidebar(): JSX.Element {
         className={`side-launch side-launch--${game} ${isRunning ? 'side-launch--running' : ''} ${
           missing ? 'side-launch--missing' : ''
         }`}
-        title={title}
+        title={missing ? title : undefined}
         onClick={() => (missing ? setShowSettings(true) : void launchGame(game))}
         disabled={busy}
       >
@@ -240,12 +248,7 @@ export function Sidebar(): JSX.Element {
 
       {/* „Surprise me" — skok na náhodné místo katalogu + zvýraznění písničky.
           Respektuje aktivní dotaz i filtry (překvapení v rámci toho, co hledáš). */}
-      <button
-        type="button"
-        className="side-surprise"
-        onClick={() => surpriseMe()}
-        title="Jump to a random spot in the catalogue and highlight a song to try"
-      >
+      <button type="button" className="side-surprise" onClick={() => surpriseMe()}>
         <Icon name="dice" size={18} className="side-surprise__dice" />
         <span className="side-surprise__text">
           <span className="side-surprise__title">Surprise me</span>

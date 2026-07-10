@@ -17,11 +17,7 @@ export function InstrumentDifficulty({ difficulties }: Props): JSX.Element {
         // Musí sedět s filtrem ve výsledcích, který bere `d !== undefined`.
         const charted = value !== undefined
         return (
-          <div
-            className={`instrument ${charted ? '' : 'instrument--absent'}`}
-            key={inst.id}
-            title={`${inst.label}: ${charted ? `${value}/${MAX_DIFFICULTY}` : 'not charted'}`}
-          >
+          <div className={`instrument ${charted ? '' : 'instrument--absent'}`} key={inst.id}>
             <Icon
               name={inst.icon}
               size={18}

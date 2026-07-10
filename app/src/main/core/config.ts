@@ -132,6 +132,7 @@ function defaults(): AppConfig {
       // pro pravou ruku na klávesnici; nepřekrývá běžné herní bindings v CH).
       toggleOverlay: 'Control+I'
     },
+    showTips: true, // rotující tipy v liště (uživatel může vypnout)
     showReminder: false, // opt-in
     reminderPosition: 'bottom-right',
     dupMoveDir: '' // poslední karanténní složka pro duplicity

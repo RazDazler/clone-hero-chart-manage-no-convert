@@ -41,7 +41,9 @@ interface Props {
   // takže po přeřazení výsledků (sort/filtr) by řádek držel starý index a klik
   // by označil/stáhl jinou píseň.
   onToggleCheck?: (key: string) => void
-  onSelect: (key: string) => void
+  /** Klik do řádku — modifikátory řídí výběr: ctrl/meta = přepnout jednu,
+   *  shift = rozsah od kotvy, jinak = vybrat jen tuto. */
+  onSelect: (key: string, ctrl: boolean, shift: boolean) => void
   onDownload: (key: string) => void
   onMarketplace: (key: string) => void
 }
@@ -172,7 +174,11 @@ function SongRowBase({
   return (
     <div
       className={`song ${selected ? 'song--selected' : ''} ${checked ? 'song--checked' : ''}`}
-      onClick={() => onSelect(song.key)}
+      onMouseDown={(e) => {
+        // Shift+klik by jinak označil text v řádku — potlačíme.
+        if (e.shiftKey) e.preventDefault()
+      }}
+      onClick={(e) => onSelect(song.key, e.ctrlKey || e.metaKey, e.shiftKey)}
       onDoubleClick={() => onDownload(song.key)}
     >
       <div className="song__check">
@@ -246,19 +252,9 @@ function SongRowBase({
             </span>
           )}
           {song.expertOnly === true ? (
-            <span
-              className="badge badge--expert"
-              title="This chart only has an Expert difficulty (no Easy / Medium / Hard)"
-            >
-              Expert only
-            </span>
+            <span className="badge badge--expert">Expert only</span>
           ) : song.expertOnly === false ? (
-            <span
-              className="badge badge--alldiffs"
-              title="This chart has Easy, Medium, Hard and Expert"
-            >
-              E/M/H/X
-            </span>
+            <span className="badge badge--alldiffs">E/M/H/X</span>
           ) : null}
           {owned ? (
             <button
@@ -279,10 +275,7 @@ function SongRowBase({
             </span>
           ) : null}
           {song.downloads != null && song.downloads > 0 ? (
-            <span
-              className="song__dls"
-              title={`${formatDownloads(song.downloads)} downloads on RhythmVerse`}
-            >
+            <span className="song__dls">
               <Icon name="download" size={12} /> {formatDownloads(song.downloads)}
             </span>
           ) : null}

@@ -160,7 +160,7 @@ export function FilterPanel(): JSX.Element {
 
   return (
     <div className={`filterpanel ${show ? 'filterpanel--open' : ''}`} aria-hidden={!show}>
-      <div className={`filterpanel__inner ${expanded ? 'filterpanel__inner--open' : ''}`}>
+      <div className={`filterpanel__inner ${show && expanded ? 'filterpanel__inner--open' : ''}`}>
       {encoreOnly ? (
         <div className="filterpanel__encore">
           <Icon name="info" size={16} />

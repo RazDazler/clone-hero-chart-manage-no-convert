@@ -1,5 +1,6 @@
 import { useStore } from '../store'
 import { Icon } from './Icon'
+import { TipsTicker } from './TipsTicker'
 
 /**
  * Horní řádek obsahu (redesign v2): jen textový brand „Chart Manager" vlevo,
@@ -19,7 +20,7 @@ export function TitleBar(): JSX.Element {
         </span>
       </div>
 
-      <div className="titlebar__spacer" />
+      <TipsTicker />
 
       <div className="titlebar__actions">
         <button

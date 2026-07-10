@@ -49,6 +49,7 @@ export type IconName =
   | 'pause'
   | 'previewOff'
   | 'dice'
+  | 'lightbulb'
 
 // Obsah jednotlivých ikon (viewBox 0 0 24 24). Stroke dědí currentColor.
 const PATHS: Record<IconName, JSX.Element> = {
@@ -249,6 +250,14 @@ const PATHS: Record<IconName, JSX.Element> = {
       <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
       <circle cx="8.5" cy="15.5" r="1.15" fill="currentColor" stroke="none" />
       <circle cx="15.5" cy="15.5" r="1.15" fill="currentColor" stroke="none" />
+    </>
+  ),
+  // žárovka – univerzální symbol pro „tip"
+  lightbulb: (
+    <>
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5A6 6 0 1 0 6 8c0 1.3.5 2.5 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
+      <path d="M9 18h6" />
+      <path d="M10 21h4" />
     </>
   )
 }
