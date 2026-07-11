@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useStore } from '../store'
 import { TIPS } from '../tips'
-import { Icon } from './Icon'
 
 /** Rotace tipu (ms), fade při výměně obsahu (ms), délka wipe animace (ms). */
 const ROTATE_MS = 9000
@@ -162,7 +161,7 @@ export function TipsTicker(): JSX.Element {
   }
 
   return (
-    <div className="tips">
+    <div className={`tips ${showTips ? 'tips--on' : ''}`}>
       <div
         className="tips__stage"
         role="button"
@@ -180,7 +179,33 @@ export function TipsTicker(): JSX.Element {
       >
         <span className="tips__body" ref={bodyRef} />
         <span className="tips__bulb">
-          <Icon name="lightbulb" size={15} />
+          {/* Vlastní SVG (ne generická Icon), ať jde sklo a patici obarvit zvlášť:
+              sklo (baňka) svítí žlutě jen s .tips--on, patice je vždy bílá. */}
+          <svg
+            width={15}
+            height={15}
+            viewBox="0 0 24 24"
+            fill="none"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <defs>
+              <radialGradient id="tipsBulbGlow" cx="50%" cy="45%" r="55%">
+                <stop offset="0%" stopColor="#ffe08a" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#ffe08a" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            {/* měkká žlutá výplň jen uvnitř skla (nezasahuje k patici) */}
+            <circle className="tips__bulb-fill" cx="12" cy="8.5" r="6.2" fill="url(#tipsBulbGlow)" stroke="none" />
+            <path
+              className="tips__bulb-glass"
+              d="M15 14c.2-1 .7-1.7 1.5-2.5A6 6 0 1 0 6 8c0 1.3.5 2.5 1.5 3.5.8.8 1.3 1.5 1.5 2.5"
+            />
+            <path className="tips__bulb-base" d="M9 18h6" />
+            <path className="tips__bulb-base" d="M10 21h4" />
+          </svg>
         </span>
       </div>
     </div>

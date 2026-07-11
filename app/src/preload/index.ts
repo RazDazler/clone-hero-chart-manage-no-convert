@@ -11,6 +11,7 @@ import type {
   LibSongInfo,
   PlaylistAddResult,
   PlaylistInfo,
+  PlaylistResolveResult,
   PlaylistSong,
   PreviewResult,
   ReleaseNotes,
@@ -48,6 +49,10 @@ const api = {
   getFilterOptions: (system?: RhythmVerseSystem) =>
     ipcRenderer.invoke('search:filterOptions', system) as Promise<FilterOptions>,
 
+  /** Načte skladby z odkazu na playlist (v1: veřejný Spotify přes embed). */
+  resolvePlaylist: (url: string) =>
+    ipcRenderer.invoke('playlist:resolve', url) as Promise<PlaylistResolveResult>,
+
   enqueueDownload: (song: SongResult, targetSubfolder?: string) =>
     ipcRenderer.invoke('jobs:enqueue', song, targetSubfolder) as Promise<string>,
 
@@ -64,6 +69,8 @@ const api = {
     ipcRenderer.invoke('library:ownedFolders', artist, title) as Promise<string[]>,
 
   libList: (rel: string) => ipcRenderer.invoke('lib:list', rel) as Promise<LibListing>,
+  libFolderCounts: (rel: string) =>
+    ipcRenderer.invoke('lib:folderCounts', rel) as Promise<Record<string, number>>,
   libCreateFolder: (rel: string, name: string) =>
     ipcRenderer.invoke('lib:createFolder', rel, name) as Promise<void>,
   libRename: (relItem: string, newName: string) =>

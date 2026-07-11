@@ -1,7 +1,8 @@
 // Hlavní okno aplikace (frameless, vlastní titlebar). Normální okno – dá se
 // alt-tabovat, není always-on-top.
 
-import { app, BrowserWindow, screen, shell } from 'electron'
+import { app, BrowserWindow, Menu, screen, shell } from 'electron'
+import type { MenuItemConstructorOptions } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { getConfig } from './core/config'
@@ -91,6 +92,26 @@ export function createOverlay(): BrowserWindow {
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
     return { action: 'deny' }
+  })
+
+  // Kontextové menu (pravý klik). Electron ho editovatelným polím NEDÁVÁ
+  // automaticky, takže bez tohohle šlo vkládat jen přes Ctrl+V. V inputech
+  // Cut/Copy/Paste/Select all (podle editFlags), jinak Copy nad výběrem textu.
+  win.webContents.on('context-menu', (_e, params) => {
+    const { isEditable, editFlags, selectionText } = params
+    const template: MenuItemConstructorOptions[] = []
+    if (isEditable) {
+      template.push(
+        { role: 'cut', enabled: editFlags.canCut },
+        { role: 'copy', enabled: editFlags.canCopy },
+        { role: 'paste', enabled: editFlags.canPaste },
+        { type: 'separator' },
+        { role: 'selectAll' }
+      )
+    } else if (selectionText && selectionText.trim()) {
+      template.push({ role: 'copy' })
+    }
+    if (template.length) Menu.buildFromTemplate(template).popup({ window: win })
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {

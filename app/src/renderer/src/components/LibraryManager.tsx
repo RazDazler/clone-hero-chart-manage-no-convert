@@ -27,6 +27,8 @@ export function LibraryManager(): JSX.Element | null {
 
   const [cwd, setCwd] = useState('')
   const [entries, setEntries] = useState<LibEntry[]>([])
+  // Počty písní v PODsložkách (name → count), doplňují se asynchronně po výpisu.
+  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({})
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [anchor, setAnchor] = useState<string | null>(null)
   const [clip, setClip] = useState<Clip>(null)
@@ -85,6 +87,12 @@ export function LibraryManager(): JSX.Element | null {
       setEntries(res.entries)
       setSelected(new Set())
       setAnchor(null)
+      // Počty písní ve složkách dotáhni na pozadí (rekurzivní čtení disku) — výpis
+      // se ukáže hned a odznaky „N songs" naskočí, jakmile dorazí.
+      setFolderCounts({})
+      void window.api.libFolderCounts(res.path).then((c) => {
+        if (my === loadSeq.current) setFolderCounts(c)
+      })
       // Je aktuální složka píseň? (obsahuje song.ini / notes.chart / notes.mid) →
       // dotáhni detail (metadata + obal) pro panel nad výpisem souborů.
       const markers = ['song.ini', 'notes.chart', 'notes.mid']
@@ -425,7 +433,15 @@ export function LibraryManager(): JSX.Element | null {
                 />
                 <span className="lib__name">{en.name}</span>
                 {en.isSong ? <span className="lib__tag">song</span> : null}
-                {en.type === 'dir' && !en.isSong ? <span className="lib__tag lib__tag--dir">folder</span> : null}
+                {en.type === 'dir' && !en.isSong ? (
+                  folderCounts[en.name] > 0 ? (
+                    <span className="lib__tag lib__tag--count">
+                      {folderCounts[en.name]} {folderCounts[en.name] === 1 ? 'song' : 'songs'}
+                    </span>
+                  ) : (
+                    <span className="lib__tag lib__tag--dir">folder</span>
+                  )
+                ) : null}
               </div>
             ))
           )}

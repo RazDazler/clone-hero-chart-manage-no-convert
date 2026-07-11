@@ -1,0 +1,7 @@
+name = "chm-spotify"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+# Tajemství (NEdávat sem ani do repa — nastavit přes wrangler):
+#   npx wrangler secret put SPOTIFY_CLIENT_ID
+#   npx wrangler secret put SPOTIFY_CLIENT_SECRET

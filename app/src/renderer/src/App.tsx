@@ -5,6 +5,7 @@ import { Icon } from './components/Icon'
 import { LibraryManager } from './components/LibraryManager'
 import { LocalDropModal } from './components/LocalDropModal'
 import { MarketplaceModal } from './components/MarketplaceModal'
+import { PlaylistImportModal } from './components/PlaylistImportModal'
 import { Pager } from './components/Pager'
 import { SearchBar } from './components/SearchBar'
 import { Sidebar } from './components/Sidebar'
@@ -158,13 +159,21 @@ export function App(): JSX.Element {
     [visible, selectedSet]
   )
   const selectedCount = visibleSelected.length
+  // Z vybraných reálně jen ty, které lze hromadně stáhnout (ne oficiální DLC,
+  // ne MEGA/Mediafire, ne už ve frontě). Klik do řádku umí označit i nestažitelné,
+  // takže počet i akce v liště se musí řídit tímhle, ne surovým `selectedCount`.
+  const downloadableSelected = useMemo(
+    () => visibleSelected.filter((s) => isAutoDownloadable(s) && !enqueuedKeys[s.key]),
+    [visibleSelected, enqueuedKeys]
+  )
+  const downloadableCount = downloadableSelected.length
   const allChecked = checkableSongs.length > 0 && checkableSongs.every((s) => selectedSet.has(s.key))
   const toggleSelectAll = (): void => {
     if (allChecked) clearSelection()
     else setSelection(checkableSongs.map((s) => s.key))
   }
   const downloadSelected = (): void => {
-    if (visibleSelected.length > 0) void openBatchDownload(visibleSelected)
+    if (downloadableSelected.length > 0) void openBatchDownload(downloadableSelected)
   }
 
   // Akce „stáhnout" – oficiální DLC místo toho nabídne otevření obchodu.
@@ -332,7 +341,8 @@ export function App(): JSX.Element {
 
       if (e.key === 'Escape') {
         const st = useStore.getState()
-        if (st.showWhatsNew) st.setShowWhatsNew(false)
+        if (st.showPlaylistImport) st.setShowPlaylistImport(false)
+        else if (st.showWhatsNew) st.setShowWhatsNew(false)
         else if (st.showLibrary) st.setShowLibrary(false)
         else if (st.showSettings) {
           // Escape = Cancel: zahoď živý náhled UI scale (jinak by neuložená
@@ -342,11 +352,12 @@ export function App(): JSX.Element {
         } else window.api.hideOverlay()
         return
       }
-      // Otevřené Nastavení/Správce/What's new: nech projít jen Escape (výše), nenaviguj.
+      // Otevřené Nastavení/Správce/What's new/Import: nech projít jen Escape (výše), nenaviguj.
       if (
         useStore.getState().showSettings ||
         useStore.getState().showLibrary ||
-        useStore.getState().showWhatsNew
+        useStore.getState().showWhatsNew ||
+        useStore.getState().showPlaylistImport
       )
         return
       if (e.key === '/' && !typing) {
@@ -481,11 +492,33 @@ export function App(): JSX.Element {
             )}
           </span>
           <div className="resultsbar__right">
-            {selectedCount > 0 ? (
+            {/* Hromadná lišta má smysl až od 2 vybraných; u jedné stačí Download na řádku. */}
+            {selectedCount > 1 ? (
               <div className="batchbar">
-                <span className="batchbar__count">{selectedCount} selected</span>
-                <button className="batchbar__dl" onClick={downloadSelected}>
-                  <Icon name="download" size={14} /> Download selected
+                <span className="batchbar__count">
+                  {selectedCount} selected
+                  {downloadableCount < selectedCount ? (
+                    <span className="batchbar__note">
+                      {downloadableCount > 0
+                        ? `${downloadableCount} downloadable`
+                        : 'none downloadable'}
+                    </span>
+                  ) : null}
+                </span>
+                <button
+                  className="batchbar__dl"
+                  onClick={downloadSelected}
+                  disabled={downloadableCount === 0}
+                  title={
+                    downloadableCount === 0
+                      ? 'None of the selected charts can be batch-downloaded — get those manually or from the store'
+                      : undefined
+                  }
+                >
+                  <Icon name="download" size={14} />{' '}
+                  {downloadableCount > 0 && downloadableCount < selectedCount
+                    ? `Download ${downloadableCount}`
+                    : 'Download selected'}
                 </button>
                 <button className="batchbar__clear" onClick={clearSelection} title="Clear selection">
                   <Icon name="close" size={13} />
@@ -553,6 +586,7 @@ export function App(): JSX.Element {
       <LibraryManager />
       <LocalDropModal />
       <WhatsNew />
+      <PlaylistImportModal />
     </div>
   )
 }

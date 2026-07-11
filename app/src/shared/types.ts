@@ -67,6 +67,30 @@ export interface SearchResponse {
   records: number
 }
 
+/** Jedna skladba z importovaného playlistu (Spotify apod.) — jen metadata pro
+ *  hledání chartu, ne odkaz ke stažení. */
+export interface PlaylistTrack {
+  title: string
+  artist: string
+  /** Délka v ms (jen orientační, ze Spotify embed), nebo null. */
+  durationMs: number | null
+}
+
+/** Výsledek načtení playlistu z odkazu. `truncated` = zdroj pravděpodobně ořízl
+ *  delší playlist (embed strop ~100 stop). */
+export type PlaylistResolveResult =
+  | { ok: true; source: 'spotify'; name: string; tracks: PlaylistTrack[]; truncated: boolean }
+  | { ok: false; error: PlaylistResolveError }
+
+/** Důvody, proč se playlist nepodařilo načíst (renderer je přeloží na hlášku). */
+export type PlaylistResolveError =
+  | 'not-a-playlist'
+  | 'not-found'
+  | 'empty'
+  | 'network'
+  | 'parse'
+  | 'unknown'
+
 /**
  * Serverové filtry pro „advanced search / browse". Hodnoty jsou normalizované
  * (nezávislé na providerovi); klient je namapuje na konkrétní API:
@@ -311,6 +335,8 @@ export interface RendererApi {
   ): Promise<SearchResponse>
   /** Volby filtrů (žánry, dekády, roky…) pro advanced panel; z RhythmVerse číselníku. */
   getFilterOptions(system?: RhythmVerseSystem): Promise<FilterOptions>
+  /** Načte skladby z odkazu na playlist (v1: veřejný Spotify přes embed). */
+  resolvePlaylist(url: string): Promise<PlaylistResolveResult>
   enqueueDownload(song: SongResult, targetSubfolder?: string): Promise<string>
   /** Spustí pipeline pro lokální soubor (drag-and-drop z disku). */
   enqueueLocalFile(
@@ -328,6 +354,8 @@ export interface RendererApi {
   ownedFolders(artist: string, title: string): Promise<string[]>
   // Správce knihovny
   libList(rel: string): Promise<LibListing>
+  /** Počty písní v PODsložkách dané složky (song složka = 1). Async — pro odznaky. */
+  libFolderCounts(rel: string): Promise<Record<string, number>>
   libCreateFolder(rel: string, name: string): Promise<void>
   libRename(relItem: string, newName: string): Promise<void>
   libTrash(relItem: string): Promise<void>

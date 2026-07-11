@@ -14,6 +14,13 @@ export function TitleBar(): JSX.Element {
   return (
     <div className="titlebar">
       <div className="titlebar__left">
+        {/* Rytmická značka = 4 EQ pruhy v barvách nástrojů (matchuje brand/ikonu). */}
+        <span className="brand-mark" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
         <span className="brand-text">
           <span className="brand-w1">Chart</span> <span className="brand-w2">Manager</span>
           <span className="brand-dot">.</span>

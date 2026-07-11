@@ -194,7 +194,15 @@ function SongRowBase({
               <Icon name="check" size={12} />
             </span>
           </label>
-        ) : null}
+        ) : (
+          // Nestažitelný řádek (oficiální DLC / externí host / už ve frontě) nejde
+          // hromadně vybrat — místo prázdného sloupce ukážeme utlumený „disabled"
+          // box, ať je checkbox sloupec konzistentní ve všech kombinacích. Není
+          // interaktivní (pointer-events: none), klik propadne na výběr řádku.
+          <span className="chk chk--disabled" aria-hidden="true">
+            <span className="chk__box" />
+          </span>
+        )}
       </div>
 
       <div className="song__art">

@@ -50,6 +50,7 @@ export type IconName =
   | 'previewOff'
   | 'dice'
   | 'lightbulb'
+  | 'playlist'
 
 // Obsah jednotlivých ikon (viewBox 0 0 24 24). Stroke dědí currentColor.
 const PATHS: Record<IconName, JSX.Element> = {
@@ -258,6 +259,13 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M15 14c.2-1 .7-1.7 1.5-2.5A6 6 0 1 0 6 8c0 1.3.5 2.5 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
       <path d="M9 18h6" />
       <path d="M10 21h4" />
+    </>
+  ),
+  // playlist – řádky seznamu + přehrávací trojúhelník (import playlistu)
+  playlist: (
+    <>
+      <path d="M4 7h13M4 12h13M4 17h6" />
+      <polygon points="14 15 20 18 14 21" fill="currentColor" stroke="none" />
     </>
   )
 }

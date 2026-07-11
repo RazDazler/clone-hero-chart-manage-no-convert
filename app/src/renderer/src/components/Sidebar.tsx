@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Database, RhythmVerseSystem, UpdateAvailable } from '../../../shared/types'
 import chLogo from '../assets/CloneHero_Logo.png'
+import spotifyMark from '../assets/Spotify_Primary_Logo.webp'
 import yargLogo from '../assets/YARG_Logo.png'
 import { useStore } from '../store'
 import { Icon } from './Icon'
@@ -39,6 +40,7 @@ export function Sidebar(): JSX.Element {
   const query = useStore((s) => s.query)
   const doSearch = useStore((s) => s.doSearch)
   const surpriseMe = useStore((s) => s.surpriseMe)
+  const setShowPlaylistImport = useStore((s) => s.setShowPlaylistImport)
 
   // Launch / focus her — přesunuto z TitleBaru, logika beze změny.
   const [runningGame, setRunningGame] = useState<Game>(null)
@@ -246,15 +248,33 @@ export function Sidebar(): JSX.Element {
         </div>
       ) : null}
 
-      {/* „Surprise me" — skok na náhodné místo katalogu + zvýraznění písničky.
-          Respektuje aktivní dotaz i filtry (překvapení v rámci toho, co hledáš). */}
-      <button type="button" className="side-surprise" onClick={() => surpriseMe()}>
-        <Icon name="dice" size={18} className="side-surprise__dice" />
-        <span className="side-surprise__text">
-          <span className="side-surprise__title">Surprise me</span>
-          <span className="side-surprise__sub">Discover a random chart</span>
-        </span>
-      </button>
+      {/* Akční tlačítka pod seznamy. „Surprise me" = náhodný chart (respektuje
+          dotaz i filtry). „Import playlist" = dohledat charty z odkazu na playlist. */}
+      <div className="side-actions">
+        <button type="button" className="side-surprise" onClick={() => surpriseMe()}>
+          <Icon name="dice" size={18} className="side-surprise__dice" />
+          <span className="side-surprise__text">
+            <span className="side-surprise__title">Surprise me</span>
+            <span className="side-surprise__sub">Discover a random chart</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className="side-surprise side-import"
+          onClick={() => setShowPlaylistImport(true)}
+        >
+          <span
+            className="side-import__logo"
+            style={{ WebkitMaskImage: `url(${spotifyMark})`, maskImage: `url(${spotifyMark})` }}
+            aria-hidden="true"
+          />
+          <span className="side-surprise__text">
+            <span className="side-surprise__title">Import playlist</span>
+            <span className="side-surprise__sub">Turn a playlist into charts</span>
+          </span>
+        </button>
+      </div>
 
       <div className="side-footer">
         {downloaded && available ? (

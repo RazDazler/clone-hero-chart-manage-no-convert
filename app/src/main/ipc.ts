@@ -29,6 +29,7 @@ import {
   libCreateFolder,
   libDeletePlaylist,
   libFindDuplicates,
+  libFolderCounts,
   libList,
   libListPlaylists,
   libMove,
@@ -49,6 +50,7 @@ import type { SongMeta } from '../shared/types'
 import { invalidateLibraryIndex } from './core/playlists'
 import { getPreview } from './core/preview'
 import { fetchFilterOptions, search as searchRhythmverse } from './core/rhythmverse'
+import { resolveSpotifyPlaylist } from './core/spotify'
 import { getReleaseNotes, getReleaseNotesSince } from './core/update'
 import { registerHotkeys, unregisterHotkeys } from './hotkeys'
 import { applyUiScale, getOverlay, hideOverlay } from './overlay'
@@ -151,6 +153,7 @@ export function registerIpc(): void {
 
   // Správce knihovny
   ipcMain.handle('lib:list', (_e, rel: string) => libList(rel))
+  ipcMain.handle('lib:folderCounts', (_e, rel: string) => libFolderCounts(rel))
   ipcMain.handle('lib:createFolder', (_e, rel: string, name: string) => libCreateFolder(rel, name))
   ipcMain.handle('lib:rename', (_e, relItem: string, newName: string) =>
     libRename(relItem, newName)
@@ -262,6 +265,9 @@ export function registerIpc(): void {
       return url
     }
   })
+
+  // Import playlistu (v1: veřejný Spotify přes embed, bez API klíče).
+  ipcMain.handle('playlist:resolve', (_e, url: string) => resolveSpotifyPlaylist(url))
 
   ipcMain.on('overlay:hide', () => hideOverlay())
   ipcMain.on('app:quit', () => app.quit())

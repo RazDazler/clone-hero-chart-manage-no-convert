@@ -3,6 +3,7 @@
 
 import { shell } from 'electron'
 import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'fs'
+import { readdir } from 'fs/promises'
 import { basename, extname, join, resolve, sep } from 'path'
 import { getConfig } from './config'
 import { readAlbumArt, readSongInfo, readSongMeta, writeSongMeta } from './songmeta'
@@ -105,6 +106,51 @@ export function libList(rel: string): { path: string; entries: LibEntry[] } {
     a.type === b.type ? a.name.localeCompare(b.name, 'cs') : a.type === 'dir' ? -1 : 1
   )
   return { path: rel, entries }
+}
+
+// Rekurzivně spočítá písničky (složky s markerem) uvnitř — do samotné písně už
+// nelezeme (její soubory nejsou další písně). Async (fs/promises), ať to u velké
+// knihovny nezablokuje main proces.
+async function countSongsIn(abs: string, depth = 0): Promise<number> {
+  if (depth > 10) return 0
+  let ents
+  try {
+    ents = await readdir(abs, { withFileTypes: true })
+  } catch {
+    return 0
+  }
+  if (ents.some((e) => e.isFile() && SONG_MARKERS.includes(e.name.toLowerCase()))) return 1
+  let total = 0
+  for (const e of ents) {
+    if (e.isFile()) {
+      // Volné .sng (zabalený CH/Encore chart) je samostatná píseň.
+      if (e.name.toLowerCase().endsWith('.sng')) total += 1
+    } else if (e.isDirectory()) {
+      total += await countSongsIn(join(abs, e.name), depth + 1)
+    }
+  }
+  return total
+}
+
+/** Pro každou PODsložku dané složky vrátí počet písní uvnitř (song složka = 1).
+ *  Počítá se na pozadí — Library manager doplní odznaky, jakmile dorazí. */
+export async function libFolderCounts(rel: string): Promise<Record<string, number>> {
+  const abs = safeAbs(rel)
+  const out: Record<string, number> = {}
+  let ents
+  try {
+    ents = await readdir(abs, { withFileTypes: true })
+  } catch {
+    return out
+  }
+  await Promise.all(
+    ents
+      .filter((e) => e.isDirectory())
+      .map(async (e) => {
+        out[e.name] = await countSongsIn(join(abs, e.name))
+      })
+  )
+  return out
 }
 
 export function libCreateFolder(rel: string, name: string): void {

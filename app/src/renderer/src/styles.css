@@ -1684,6 +1684,18 @@ body {
   color: var(--text);
   white-space: nowrap;
 }
+/* Doplněk, když jsou ve výběru i nestažitelné položky (oficiální DLC / externí
+   host / už ve frontě) — kolik z vybraných reálně půjde hromadně stáhnout. */
+.batchbar__note {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.batchbar__note::before {
+  content: '·';
+  margin: 0 5px;
+  opacity: 0.6;
+}
 .batchbar__dl {
   display: inline-flex;
   align-items: center;
@@ -1707,6 +1719,16 @@ body {
 }
 .batchbar__dl:active {
   transform: translateY(0) scale(0.97);
+}
+/* Nic z vybraného nejde hromadně stáhnout → tlačítko vypnuté (jen výběr). */
+.batchbar__dl:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.batchbar__dl:disabled:hover {
+  transform: none;
+  filter: none;
 }
 .batchbar__clear {
   display: inline-flex;
@@ -1878,12 +1900,25 @@ body {
   justify-content: center;
 }
 .song__check .chk__box {
-  opacity: 0.45;
+  opacity: 0.55;
   transition: opacity 0.16s, background 0.16s, border-color 0.16s, color 0.16s, transform 0.08s;
 }
 .song:hover .song__check .chk__box,
 .song--checked .song__check .chk__box {
   opacity: 1;
+}
+/* Nestažitelný řádek: utlumený „disabled" placeholder (přerušovaný okraj), ať je
+   sloupec konzistentní. Zůstává tlumený i při hoveru řádku a není interaktivní. */
+.chk--disabled {
+  pointer-events: none;
+}
+.song__check .chk--disabled .chk__box,
+.song:hover .song__check .chk--disabled .chk__box {
+  opacity: 0.4;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background: transparent;
+  box-shadow: none;
 }
 .song--checked {
   background: rgba(var(--accent-rgb), 0.08);
@@ -3088,6 +3123,15 @@ body {
   border-color: var(--border);
   background: var(--panel);
 }
+/* Počet písní ve složce — tichý informační odznak (na každém řádku), malými. */
+.lib__tag--count {
+  color: var(--text-dim);
+  border-color: var(--border);
+  background: var(--panel);
+  text-transform: none;
+  letter-spacing: 0.2px;
+  font-weight: 600;
+}
 .lib__actions {
   display: flex;
   align-items: center;
@@ -4039,12 +4083,31 @@ body {
 .tips__body--swap {
   opacity: 0;
 }
-/* Žárovka — pevná kotva vpravo; na hover se jemně posune doleva. */
+/* Žárovka — pevná kotva vpravo; na hover se jemně posune doleva. Patice je VŽDY
+   bílá; sklo (baňka) svítí žlutě + glow jen když tipy běží (.tips--on), jinak je
+   taky bílé („zhasnuté"). Výplň (radiální gradient v SVG) je jen v horní části. */
 .tips__bulb {
-  color: var(--accent);
   display: inline-flex;
   flex-shrink: 0;
   transition: transform 0.22s ease;
+}
+.tips__bulb-base {
+  stroke: #fff;
+}
+.tips__bulb-glass {
+  stroke: #fff;
+  transition: stroke 0.3s ease, filter 0.3s ease;
+}
+.tips--on .tips__bulb-glass {
+  stroke: #ffd24a;
+  filter: drop-shadow(0 0 3px rgba(255, 205, 70, 0.85));
+}
+.tips__bulb-fill {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.tips--on .tips__bulb-fill {
+  opacity: 1;
 }
 .tips__stage:hover .tips__bulb {
   transform: translateX(-3px);
@@ -4661,7 +4724,10 @@ body {
 
 /* Rytmická značka u titulku (varianta F): fret/EQ pruhy v barvách nástrojů. */
 .titlebar__left {
-  gap: 15px;
+  /* Pruhy 2px dál od textu; spodek pruhů lícuje s účařím textu (baseline). */
+  gap: 11px;
+  align-items: baseline;
+  margin-left: 10px; /* celý blok (logo + text) posunut doprava */
 }
 .brand-mark {
   display: inline-flex;
@@ -4669,6 +4735,7 @@ body {
   gap: 4px;
   height: 30px;
   flex-shrink: 0;
+  transform: translateY(1px); /* jemné doladění spodní hrany k účaří textu */
 }
 .brand-mark i {
   width: 5px;
@@ -5126,7 +5193,9 @@ body {
 
 /* ── Klouzavé zvýraznění položek DATABASE / SYSTEM ──
    Jedna „ryba" (indikátor) na skupinu plavně sjede na aktivní položku
-   s lehkým pružným dojezdem. Položky samy už žádné vlastní pozadí nemají. */
+   plynulým dojezdem BEZ přestřelení — jinak by u poslední položky pružina
+   přejela za spodní okraj kapsy a (kvůli overflow: hidden) to vypadalo, že
+   pilulka zajíždí pod krabičku. Položky samy už žádné vlastní pozadí nemají. */
 /* Seznam = zapuštěný „důlek" (segmented control). Položky v něm kloužou a
    vybraná je vystouplá pilulka (.side-indicator). Padding 6px odsadí obsah od
    stěn důlku; indikátor je proto taky odsazený o 6px (viz top/left/right). */
@@ -5137,8 +5206,8 @@ body {
   padding: 6px;
   border-radius: var(--r-lg);
   background: rgba(0, 0, 0, 0.42);
-  /* Ořízne přesah posuvného indikátoru (bounce/overshoot při dlouhém skoku), ať
-     „narazí" do okraje kapsy místo vyjetí ven. Animaci samotnou neměníme. */
+  /* Pojistka: ořízne případný sub-pixelový přesah indikátoru u krajních
+     položek, ať nikdy nevyjede z kapsy (dojezd sám už nepřestřeluje). */
   overflow: hidden;
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.75), inset 0 1px 2px rgba(0, 0, 0, 0.6),
     inset 0 -1px 1px rgba(255, 255, 255, 0.04), inset 0 0 0 1px rgba(0, 0, 0, 0.4),
@@ -5157,7 +5226,9 @@ body {
     0 3px 8px rgba(0, 0, 0, 0.3);
   z-index: 0;
   pointer-events: none;
-  transition: transform 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Plynulý dojezd bez přestřelení (decelerace): žádný control point mimo
+     [0,1], takže pilulka nikdy nepřejede přes kraj kapsy ani u krajních položek. */
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
 }
 /* Text položky nad indikátorem. */
 .side-item {
@@ -5817,4 +5888,365 @@ button.badge--owned:hover {
 [data-theme='graphite'] .filterbar .fgroup + .fgroup {
   border-left-color: rgba(0, 0, 0, 0.42);
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+/* ═══════════════════ Import playlistu (Spotify → charty) ═══════════════════
+   Sidebar: „Surprise me" + „Import playlist" v jednom bloku s menší mezerou.
+   Modal: vložení odkazu → párování → seznam se stavy, verzemi a výběrem. */
+.side-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* „Import playlist" = stejný tvar jako Surprise, vlevo Spotify kolečko. Logo je
+   bílá silueta → přebarvujeme ho maskou (výplň = background): v klidu bílé,
+   na hoveru Spotify zelené. */
+.side-import__logo {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: inline-block;
+  background: var(--text);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  transition: background 0.16s ease, transform 0.15s ease;
+}
+.side-import:hover .side-import__logo {
+  background: #1db954;
+  transform: scale(1.06);
+}
+
+/* ── Modal ── */
+.modal--playlist {
+  width: 640px;
+  display: flex;
+  flex-direction: column;
+  max-height: 86%;
+  overflow: hidden;
+}
+.modal--playlist .modal__head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.plimport__body {
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  overflow: hidden;
+}
+
+/* Vstupní obrazovka */
+.plimport__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Spotify wordmark nahoře (branding) — bílá silueta přebarvená maskou na Spotify
+   zelenou, ať vyčnívá. Šířka = výška × poměr loga (3432/940 ≈ 3.65). */
+.plimport__brand {
+  width: 95px;
+  height: 26px;
+  align-self: flex-start;
+  margin-bottom: 2px;
+  background: #1db954;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: left center;
+  mask-position: left center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  user-select: none;
+}
+.plimport__lead {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.plimport__inputrow {
+  display: flex;
+  gap: 8px;
+}
+.plimport__input {
+  flex: 1;
+  height: 38px;
+  padding: 0 13px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font-size: 13px;
+}
+.plimport__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.plimport__note {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+.plimport__error {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--warn);
+}
+
+/* Stavová hlavička + progress */
+.plimport__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.plimport__title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.plimport__title strong {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plimport__count {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.plimport__selall {
+  border: none;
+  background: none;
+  color: var(--accent-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.plimport__selall:hover {
+  text-decoration: underline;
+}
+.plimport__progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.plimport__progress-fill {
+  height: 100%;
+  background: var(--accent-grad);
+  transition: width 0.2s ease;
+}
+.plimport__warn {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Seznam skladeb */
+.plimport__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+.plrow {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+}
+.plrow--matched {
+  background: rgba(255, 255, 255, 0.02);
+}
+.plrow--notfound {
+  opacity: 0.5;
+}
+.plrow__lead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.plrow__x {
+  color: var(--text-faint);
+  display: inline-flex;
+}
+.plrow__track {
+  min-width: 0;
+}
+.plrow__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plrow__artist {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plrow__match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+.plrow__charter,
+.plrow__dls {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.plrow__none {
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+/* Štítek „nejde stáhnout samo" (MEGA / Mediafire / Official DLC / Manual link) —
+   teplý jantar, ať jasně odlišuje od stažitelných. Zároveň KLIKACÍ: otevře
+   odkaz/obchod v prohlížeči (stejně jako „Get on MEGA" / „Open store" v hledání). */
+.plrow__na {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-family: inherit;
+  color: #e6b980;
+  background: rgba(230, 170, 90, 0.12);
+  border: 1px solid rgba(230, 170, 90, 0.4);
+  border-radius: 6px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+button.plrow__na:hover {
+  background: rgba(230, 170, 90, 0.22);
+  border-color: rgba(230, 170, 90, 0.75);
+}
+/* Nestažitelný řádek: disabled políčko (přerušované, tlumené) — jako v hlavních
+   výsledcích. `.chk--disabled { pointer-events: none }` je definované globálně. */
+.plrow .chk--disabled .chk__box {
+  opacity: 0.4;
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background: transparent;
+  box-shadow: none;
+}
+.plrow__versions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.plrow__versions:hover {
+  color: var(--text);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+/* Version picker (rozbalený pod řádkem) */
+.plrow__picker {
+  grid-column: 2 / 4;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.plver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  text-align: left;
+  padding: 5px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.plver:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.plver--on {
+  color: var(--text);
+}
+.plver__radio {
+  color: var(--accent);
+  width: 12px;
+}
+.plver__charter {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Spinner (načítání / hledání řádku) */
+.plimport__spin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--accent);
+  animation: plspin 0.7s linear infinite;
+  display: inline-block;
+}
+.plrow__spin {
+  width: 13px;
+  height: 13px;
+}
+@keyframes plspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Patička */
+.plimport__foot {
+  justify-content: space-between;
+}
+.plimport__footright {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.plimport__selcount {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
 }

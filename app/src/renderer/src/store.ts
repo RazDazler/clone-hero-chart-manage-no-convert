@@ -36,6 +36,8 @@ interface AppState {
   showWhatsNew: boolean
   /** Verze, ze které uživatel updatoval — changelog pak ukáže vše novější. null = ruční otevření (posledních N). */
   whatsNewSince: string | null
+  /** Otevřený modal „Import playlist" (Spotify → charty). */
+  showPlaylistImport: boolean
 
   // Filtr podle nástroje (id nástroje, který musí být zahraný)
   instrumentFilters: string[]
@@ -141,6 +143,7 @@ interface AppState {
   setShowWhatsNew: (v: boolean) => void
   /** Otevře „What's new". `since` = z jaké verze uživatel přišel (null/nezadáno = posledních N). */
   openWhatsNew: (since?: string | null) => void
+  setShowPlaylistImport: (v: boolean) => void
   doSearch: (page?: number) => Promise<void>
   /** Přepne stránku: v deep režimu lokálně, jinak server dotazem. */
   goToPage: (p: number) => void
@@ -417,6 +420,7 @@ export const useStore = create<AppState>((set, get) => {
   libraryReveal: null,
   showWhatsNew: false,
   whatsNewSince: null,
+  showPlaylistImport: false,
   instrumentFilters: [],
   diffMin: 0,
   diffMax: 6,
@@ -702,9 +706,15 @@ export const useStore = create<AppState>((set, get) => {
   setSelectedIndex: (i) => set({ selectedIndex: i }),
   setShowSettings: (v) => set({ showSettings: v }),
   // Zavření manageru vyčistí cíl „reveal" (příště se otevře normálně na kořeni).
-  setShowLibrary: (v) => set(v ? { showLibrary: true } : { showLibrary: false, libraryReveal: null }),
+  // Zároveň obnoví „owned" index — uživatel mohl ve správci smazat/přesunout
+  // písničky, jinak by řádky ve výsledcích držely zastaralý „In library".
+  setShowLibrary: (v) => {
+    set(v ? { showLibrary: true } : { showLibrary: false, libraryReveal: null })
+    if (!v) void get().loadOwnedKeys()
+  },
   openLibraryAt: (rels) => set({ libraryReveal: rels, showLibrary: true }),
   setShowWhatsNew: (v) => set({ showWhatsNew: v }),
+  setShowPlaylistImport: (v) => set({ showPlaylistImport: v }),
   openWhatsNew: (since) => set({ showWhatsNew: true, whatsNewSince: since ?? null }),
 
   doSearch: async (page = 1) => {
