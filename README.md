@@ -10,7 +10,28 @@ and [Chorus Encore](https://www.enchor.us) databases — with drag‑and‑drop
 manual installs, an in‑game hotkey reminder pill, and one‑click launch of the
 game itself.
 
+**New: import a Spotify playlist.** Paste a public Spotify playlist link and
+CHM finds a chart for every song in it, then downloads them all in a few
+clicks — a whole setlist from a playlist you already love. See
+[Import a Spotify playlist](#import-a-spotify-playlist) below.
+
 ## Features
+
+### Import a Spotify playlist
+- 🎧 **Paste a Spotify link, get the charts** — drop a public Spotify playlist
+  URL into the sidebar and CHM looks up a chart for every song in it, then lets
+  you download the matches in bulk. Turn a playlist you already listen to into a
+  set of Clone Hero songs in a couple of clicks.
+- 📜 **Any length** — it reads the whole playlist, not just the first 100 songs,
+  through a small Cloudflare Worker that talks to the official Spotify Web API
+  (the built‑in reader is used as a fallback and covers up to 100).
+- 🎚️ **Choose the chart** — when a song has more than one chart you can open
+  its versions and pick which charter's to grab; the best auto‑downloadable one
+  is preselected.
+- 🌐 **Manual hosts and DLC included** — songs whose charts live on MEGA /
+  Mediafire, or that are official Rock Band DLC, are labelled and can be opened
+  in your browser straight from the results, so nothing silently goes missing.
+- 🔒 Reads **public** playlists only; no Spotify login and no account data.
 
 ### Search & discovery
 - 🔎 **Two databases, one UI** — RhythmVerse + Chorus Encore. Pick one or
@@ -28,7 +49,17 @@ game itself.
   filter by **genre**, **release year** and **song length** server‑side across
   the whole catalog; on either database, refine the loaded results by
   **charter** / **album** and hide songs you already own.
-- 🔀 **Sort** by title, artist or length (the default order is relevance).
+- 🔀 **Sort** the whole catalog server‑side by title, artist, length, **most
+  downloaded** or **recently added** (the default order is relevance).
+- 🎲 **Surprise me** — one button in the sidebar picks a random chart out of
+  everything you're currently browsing, respecting your instrument filter.
+- ▶️ **Preview before you download** — hover a song's album art and press play
+  for a 30‑second clip of the real recording, matched by artist + title.
+- 📈 **Download counts & "In library" tags** — see how popular a RhythmVerse
+  chart is, and spot at a glance which songs you already own (click the tag to
+  jump to that song in the library manager).
+- 💡 **Rotating tips** in the top bar surface the less obvious features; toggle
+  them with the lightbulb.
 
 ### Downloads
 - ⬇️ **Multi‑host downloader** — Google Drive (files & folders, including the
@@ -42,6 +73,9 @@ game itself.
 - 🔁 **Truncated download retry** — if the host closes the connection early
   (Content‑Length mismatch), the download is retried once before reporting
   the error.
+- ☑️ **Batch download** — Ctrl/Shift‑click rows (or the select‑all checkbox) to
+  pick several charts at once, then grab them all with **Download selected**.
+  The count only ever includes charts that can actually be auto‑downloaded.
 - 🧰 **All archives unpack natively** — zip / 7z / RAR5 via bundled modern
   7‑Zip 24.09. CRC errors and not‑an‑archive cases get friendly, actionable
   error messages.
@@ -70,9 +104,17 @@ game itself.
   pipeline as a normal download from there.
 
 ### Library manager
-- 📁 Built‑in file manager for your `Songs` folder with multi‑select,
-  cut/copy/paste/delete (uses the Windows recycle bin), rename, create
-  folder, right‑click context menu and keyboard shortcuts.
+- 📁 **Built‑in file manager** for your `Songs` folder — multi‑select,
+  cut/copy/paste/delete (uses the Windows recycle bin), rename, create folder,
+  right‑click context menu and keyboard shortcuts. Every folder shows **how many
+  songs** it holds.
+- 🎵 **Playlists** — create and edit Clone Hero `.setlist` files right here, so
+  setlists you build show up in the game.
+- 👯 **Duplicate finder** — spot identical charts (same hash) and other copies
+  of the same song, compare them side by side, and move the ones you don't want
+  out of the way.
+- 📝 **Edit metadata** — adjust a song's `song.ini` (title, artist, charter, …)
+  in‑app; open any song to see its album art and per‑instrument difficulties.
 
 ### Clone Hero integration
 - 🎮 **Launch / Switch to Clone Hero** button in the title bar — auto‑detects
@@ -117,6 +159,8 @@ Clone Hero Song Downloader/
       core/
         rhythmverse.ts           RhythmVerse API client
         enchor.ts                Chorus Encore API client
+        spotify.ts               Spotify playlist resolver (Worker + embed fallback)
+        preview.ts               30s audio preview lookup (iTunes / Deezer)
         gameformats.ts           format / conversion-needed detection
         download.ts              downloading (GDrive, Mediafire, shorteners, direct)
                                  with Transform-based byte counter (fixes race-lost data)
@@ -135,7 +179,7 @@ Clone Hero Song Downloader/
     src/renderer/                React UI (search, list, difficulties, queue, settings)
   native/onyx/                   Onyx CLI (CON→CH converter)
   native/7zip/                   modern 7-Zip (zip / 7z / RAR5 extraction)
-  Release/                       ready-to-share bundle (built locally, not committed)
+  worker/                        Cloudflare Worker: full Spotify playlist reader
 ```
 
 ## Install
@@ -154,6 +198,14 @@ desktop shortcuts and registers an entry under *Apps & Features* named
 Alternatively, **`CHM-Portable-<version>.exe`** is a single‑file portable
 build that runs without installing. Drop it anywhere (its own folder is
 fine) and double‑click. Same features, no registry entries.
+
+### Updates
+
+The installer build keeps itself up to date: CHM checks GitHub Releases in the
+background and offers to download and install a new version in one click
+(there's also a **Check for updates** button next to the version number in the
+sidebar). The portable build shows the same notice but you grab the new `.exe`
+yourself.
 
 ### First launch
 
@@ -204,6 +256,8 @@ anywhere" bundle for sharing.
 - Leave the search box empty to **browse the whole catalog**, or use the
   **instrument circles**, **difficulty range** and the **Filters** panel
   (genre, release year, song length, charter, album) to narrow results.
+- In the left sidebar, hit **Surprise me** for a random pick, or **Import
+  playlist** to pull in a whole Spotify playlist at once.
 - Click **Download** on a row → pick a target subfolder inside `Songs` (or
   create a new one) → done. For hosts the app can't auto‑download from, the
   button is replaced with **Get on MEGA** / **Get on Mediafire** /
