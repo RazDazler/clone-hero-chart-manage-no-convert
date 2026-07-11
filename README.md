@@ -1,6 +1,10 @@
-<img width="2067" height="1438" alt="app-overview" src="https://github.com/user-attachments/assets/b6681a51-fa9a-4343-9661-1a1ce4ab31b6" />
+<p align="center">
+  <img alt="Chart Manager main window, searching charts" width="900" src="https://github.com/user-attachments/assets/b6681a51-fa9a-4343-9661-1a1ce4ab31b6" />
+</p>
 
-https://chartmanager.pages.dev/
+<p align="center">
+  <a href="https://chartmanager.pages.dev/"><b>chartmanager.pages.dev</b></a>
+</p>
 
 # Clone Hero Chart Manager (CHM)
 
@@ -33,6 +37,13 @@ clicks — a whole setlist from a playlist you already love. See
   in your browser straight from the results, so nothing silently goes missing.
 - 🔒 Reads **public** playlists only; no Spotify login and no account data.
 
+<p align="center">
+  <img alt="Paste a public Spotify playlist link in the Import playlist window" width="720" src="docs/img/spotify_2.png" />
+</p>
+<p align="center">
+  <img alt="Charts matched to every song in the playlist, ready to download in bulk" width="440" src="docs/img/spotify_3.png" />
+</p>
+
 ### Search & discovery
 - 🔎 **Two databases, one UI** — RhythmVerse + Chorus Encore. Pick one or
   search both at once (merged & de‑duplicated by artist + title + charter,
@@ -61,6 +72,13 @@ clicks — a whole setlist from a playlist you already love. See
 - 💡 **Rotating tips** in the top bar surface the less obvious features; toggle
   them with the lightbulb.
 
+<p align="center">
+  <img alt="Live search results with type-ahead suggestions" width="780" src="docs/img/search-bar.webp" />
+</p>
+<p align="center">
+  <img alt="Instrument circles and difficulty range picker" width="780" src="docs/img/instruments-difficulty.png" />
+</p>
+
 ### Downloads
 - ⬇️ **Multi‑host downloader** — Google Drive (files & folders, including the
   virus‑scan confirm bypass), Mediafire (HTML scrape), Dropbox (`dl=1`),
@@ -79,6 +97,10 @@ clicks — a whole setlist from a playlist you already love. See
 - 🧰 **All archives unpack natively** — zip / 7z / RAR5 via bundled modern
   7‑Zip 24.09. CRC errors and not‑an‑archive cases get friendly, actionable
   error messages.
+
+<p align="center">
+  <img alt="Pick which database and system to download from" width="420" src="docs/img/where-to-download.webp" />
+</p>
 
 ### Formats & conversion
 - `ch` / `chart` / `ps` (Phase Shift) → **native**, just extract and copy.
@@ -103,6 +125,10 @@ clicks — a whole setlist from a playlist you already love. See
 - 🗂️ Pick a target subfolder inside `Songs` (or create a new one). Same
   pipeline as a normal download from there.
 
+<p align="center">
+  <img alt="Drop a file or folder onto the drop zone to install it" width="380" src="docs/img/drop-files.webp" />
+</p>
+
 ### Library manager
 - 📁 **Built‑in file manager** for your `Songs` folder — multi‑select,
   cut/copy/paste/delete (uses the Windows recycle bin), rename, create folder,
@@ -115,6 +141,16 @@ clicks — a whole setlist from a playlist you already love. See
   out of the way.
 - 📝 **Edit metadata** — adjust a song's `song.ini` (title, artist, charter, …)
   in‑app; open any song to see its album art and per‑instrument difficulties.
+
+<p align="center">
+  <img alt="Library manager: a full file browser for your Songs folder" width="820" src="docs/img/library-manager.png" />
+</p>
+<table>
+  <tr>
+    <td width="50%" valign="top"><img alt="Create and edit Clone Hero setlists" width="100%" src="docs/img/setlist-manager.webp" /></td>
+    <td width="50%" valign="top"><img alt="Duplicate finder comparing copies side by side" width="100%" src="docs/img/find-duplicates.webp" /></td>
+  </tr>
+</table>
 
 ### Clone Hero integration
 - 🎮 **Launch / Switch to Clone Hero** button in the title bar — auto‑detects
@@ -275,6 +311,10 @@ anywhere" bundle for sharing.
   page.
 - ▁ **Hide to tray**.
 - ✕ **Quit**.
+
+<p align="center">
+  <img alt="Settings panel: Songs folder, hotkey reminder pill and more" width="420" src="docs/img/settings.webp" />
+</p>
 
 > **Scanning into the game:** Clone Hero has no external rescan command —
 > after a download finishes, switch to the game (the title‑bar button does
