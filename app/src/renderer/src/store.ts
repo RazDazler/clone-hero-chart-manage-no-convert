@@ -503,6 +503,9 @@ export const useStore = create<AppState>((set, get) => {
     // Už staženo? Přehraj z cache.
     const cached = previewBlobCache.get(key)
     if (cached) {
+      // Obnov LRU pořadí (přehrané = nejnovější), ať ho eviction neodstřihne.
+      previewBlobCache.delete(key)
+      previewBlobCache.set(key, cached)
       play(cached, previewLabelCache.get(key) ?? null)
       return
     }
@@ -516,14 +519,17 @@ export const useStore = create<AppState>((set, get) => {
       }
       const blob = new Blob([res.data], { type: res.mime || 'audio/mpeg' })
       const url = URL.createObjectURL(blob)
-      // Strop cache: uvolni nejstarší blob.
+      // Strop cache: uvolni nejstarší blob, ale NIKDY ten právě hrající — jinak
+      // by se revoknul URL přehrávané ukázky a zvuk by spadl na error.
       if (previewBlobCache.size >= PREVIEW_BLOB_MAX) {
-        const oldest = previewBlobCache.keys().next().value
-        if (oldest !== undefined) {
+        const playingKey = get().previewKey
+        for (const oldest of previewBlobCache.keys()) {
+          if (oldest === playingKey) continue
           const oldUrl = previewBlobCache.get(oldest)
           if (oldUrl) URL.revokeObjectURL(oldUrl)
           previewBlobCache.delete(oldest)
           previewLabelCache.delete(oldest)
+          break
         }
       }
       previewBlobCache.set(key, url)

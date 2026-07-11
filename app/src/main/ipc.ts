@@ -111,9 +111,13 @@ export function registerIpc(): void {
           seen.add(k)
           merged.push(s)
         }
-        const total =
-          (rv.status === 'fulfilled' ? rv.value.totalFiltered : 0) +
-          (en.status === 'fulfilled' ? en.value.totalFiltered : 0)
+        // „Both" posouvá obě DB po stránkách v ZÁKRYTU (stránka P = RV[P]+Encore[P]),
+        // takže stránek je tolik, co má DELŠÍ katalog — NE součet obou. Součet by
+        // nafoukl pager o prázdné zadní stránky a rozbil i losování „Surprise me".
+        const total = Math.max(
+          rv.status === 'fulfilled' ? rv.value.totalFiltered : 0,
+          en.status === 'fulfilled' ? en.value.totalFiltered : 0
+        )
         return { songs: merged, totalFiltered: total, page, records }
       }
       return searchRhythmverse(text, page, records, system ?? 'ch', filters, sort)

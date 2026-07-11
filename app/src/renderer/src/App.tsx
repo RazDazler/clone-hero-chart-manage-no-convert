@@ -272,6 +272,12 @@ export function App(): JSX.Element {
       }
     })()
     const offJob = window.api.onJobUpdate(applyJobUpdate)
+    // Seed rozdělané fronty: po reloadu rendereru je store.jobs prázdný a úloha
+    // se sparse updaty (např. converting) by byla neviditelná do dalšího ticku.
+    void window.api
+      .getJobs()
+      .then((js) => js.forEach(applyJobUpdate))
+      .catch(() => {})
     const offHotkey = window.api.onHotkey((action) => {
       if (action === 'focus-search') {
         ;(document.querySelector('.searchbar input') as HTMLInputElement)?.focus()

@@ -208,6 +208,15 @@ class JobManager extends EventEmitter {
             mkdirSync(exDir, { recursive: true })
             await extract(downloadPath, exDir)
             workDir = exDir
+          } else if (await isSngFile(downloadPath)) {
+            // .sng (Encore container) → vždy rozbalit, stejně jako u stažených
+            // souborů. Starší Clone Hero single-file .sng nečte, ale složku
+            // s notes.chart + song.ini ano.
+            this.setStage(id, 'extracting', 'Unpacking .sng…')
+            const exDir = join(tmpRoot, '_extracted')
+            mkdirSync(exDir, { recursive: true })
+            await extractSng(downloadPath, exDir, `${song.artist} - ${song.title}`)
+            workDir = exDir
           } else if (isHtmlFile(downloadPath)) {
             throw new Error('Dropped file looks like a web page, not a song.')
           }

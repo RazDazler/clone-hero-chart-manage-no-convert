@@ -25,7 +25,7 @@ interface Row {
 }
 
 const CONCURRENCY = 4
-const RECORDS = 40
+const RECORDS = 60
 
 // Očisti název skladby od šumu (remaster/verze/feat…), jinak i existující chart vypadne.
 const NOISE_RE =
@@ -46,9 +46,11 @@ function keyOf(s: string): string {
     .replace(/^the\s+/, '')
     .replace(/[^a-z0-9]/g, '')
 }
-// Hlavní interpret (bez feat./doprovodu).
+// Hlavní interpret (bez feat./doprovodu). Slovní oddělovače (feat/ft/x/with)
+// MUSÍ mít kolem sebe mezeru — jinak „ft"/„feat" jako podřetězec zmrší jména
+// typu „Daft Punk" → „Da" nebo „Kraftwerk" → „Kra".
 function mainArtist(a: string): string {
-  return a.split(/,|&|feat\.?|ft\.?| x | with /i)[0] || a
+  return a.split(/\s*,\s*|\s*&\s*|\s+(?:featuring|feat|ft|with|x)\.?\s+/i)[0]?.trim() || a
 }
 
 async function matchTrack(track: PlaylistTrack): Promise<SongResult[]> {
@@ -58,7 +60,13 @@ async function matchTrack(track: PlaylistTrack): Promise<SongResult[]> {
   let songs: SongResult[]
   try {
     // system 'all' = nejširší pokrytí chartů (CH + PS + RB), db respektuje volbu.
-    const resp = await window.api.search(nt, 1, RECORDS, 'all', db)
+    // Fulltext hledá jen podle NÁZVU a je „fuzzy" — „Iris" chytne i „Osiris",
+    // „Irish Blood", „Donnie Iris"… U krátkých/častých názvů to zaplaví okno
+    // balastem a skutečnou písničku vytlačí za hranici (ověřeno: 262 výsledků
+    // na „Iris", v relevanci jediný Goo Goo Dolls záznam = Official DLC). Proto
+    // řadíme dotaz podle STAŽENÍ: populární verze reálné písně vyplavou do okna
+    // a dopárování interpreta pak nabídne i stažitelné charty, ne jen ten nej.
+    const resp = await window.api.search(nt, 1, RECORDS, 'all', db, undefined, 'downloads')
     songs = resp.songs
   } catch {
     return []

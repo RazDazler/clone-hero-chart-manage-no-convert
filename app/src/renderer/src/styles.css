@@ -2652,11 +2652,40 @@ body {
   }
 }
 .modal__head {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 17px 22px;
   border-bottom: 1px solid var(--border);
+  /* Stejný motiv jako titlebar: jemná radiální záře za nadpisem (vlevo, kde
+     titulek sedí) + horní sheen. Přes accent proměnné → laděno v obou motivech. */
+  background:
+    radial-gradient(
+      460px 96px at 15% 50%,
+      rgba(var(--accent-rgb), 0.16) 0%,
+      rgba(var(--accent-2-rgb), 0.07) 42%,
+      transparent 78%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+}
+/* Účentový proužek pod hlavičkou modalu — stejný jako pod titlebarem. */
+.modal__head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(var(--accent-rgb), 0.5) 25%,
+    rgba(var(--accent-2-rgb), 0.6) 50%,
+    rgba(var(--accent-rgb), 0.5) 75%,
+    transparent 100%
+  );
+  pointer-events: none;
 }
 .modal__head h2 {
   margin: 0;
@@ -2667,11 +2696,24 @@ body {
   text-transform: uppercase;
 }
 .modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   background: none;
   border: none;
+  border-radius: 8px;
   color: var(--text-dim);
   cursor: pointer;
   font-size: 17px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.modal__close:hover {
+  background: var(--panel-hover);
+  color: var(--text);
 }
 .modal__body {
   padding: 22px;
