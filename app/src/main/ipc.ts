@@ -112,13 +112,20 @@ export function registerIpc(): void {
           merged.push(s)
         }
         // „Both" posouvá obě DB po stránkách v ZÁKRYTU (stránka P = RV[P]+Encore[P]),
-        // takže stránek je tolik, co má DELŠÍ katalog — NE součet obou. Součet by
-        // nafoukl pager o prázdné zadní stránky a rozbil i losování „Surprise me".
-        const total = Math.max(
-          rv.status === 'fulfilled' ? rv.value.totalFiltered : 0,
-          en.status === 'fulfilled' ? en.value.totalFiltered : 0
-        )
-        return { songs: merged, totalFiltered: total, page, records }
+        // takže STRÁNEK je tolik, co má delší katalog — NE součet obou (ten by
+        // nafoukl pager o prázdné zadní stránky a rozbil losování „Surprise me").
+        // Základ stránkování = max. Ale do LABELU patří SOUČET = kolik chartů je
+        // dohromady k procházení (každá stránka ukazuje obě DB), jinak by Both
+        // vypadal stejně jako samotný Encore.
+        const rvTotal = rv.status === 'fulfilled' ? rv.value.totalFiltered : 0
+        const enTotal = en.status === 'fulfilled' ? en.value.totalFiltered : 0
+        return {
+          songs: merged,
+          totalFiltered: Math.max(rvTotal, enTotal),
+          resultCount: rvTotal + enTotal,
+          page,
+          records
+        }
       }
       return searchRhythmverse(text, page, records, system ?? 'ch', filters, sort)
     }

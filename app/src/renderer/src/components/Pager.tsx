@@ -30,6 +30,7 @@ export function Pager({
   const page = useStore((s) => s.page)
   const records = useStore((s) => s.records)
   const totalFiltered = useStore((s) => s.totalFiltered)
+  const resultCount = useStore((s) => s.resultCount)
   const instrumentFilters = useStore((s) => s.instrumentFilters)
   const diffMin = useStore((s) => s.diffMin)
   const diffMax = useStore((s) => s.diffMax)
@@ -111,7 +112,7 @@ export function Pager({
           </>
         ) : (
           <>
-            Page {page} / {totalPages} · {totalFiltered} results
+            Page {page} / {totalPages} · {resultCount || totalFiltered} results
             {instrumentFilters.length > 0 ? ` · ${visibleCount} shown` : ''}
           </>
         )}

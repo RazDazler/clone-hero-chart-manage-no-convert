@@ -21,6 +21,8 @@ interface AppState {
   records: number
   results: SongResult[]
   totalFiltered: number
+  /** Počet do labelu „results found" (u „Both" = součet obou katalogů; jinak = totalFiltered). */
+  resultCount: number
   loading: boolean
   error: string | null
   selectedIndex: number
@@ -409,6 +411,7 @@ export const useStore = create<AppState>((set, get) => {
   records: 25,
   results: [],
   totalFiltered: 0,
+  resultCount: 0,
   loading: false,
   error: null,
   selectedIndex: -1,
@@ -759,6 +762,7 @@ export const useStore = create<AppState>((set, get) => {
       set({
         results: res.songs,
         totalFiltered: res.totalFiltered,
+        resultCount: res.resultCount ?? res.totalFiltered,
         page: res.page,
         loading: false,
         selectedIndex: -1,

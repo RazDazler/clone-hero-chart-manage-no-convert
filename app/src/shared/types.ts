@@ -62,7 +62,14 @@ export interface SongResult {
 
 export interface SearchResponse {
   songs: SongResult[]
+  /** Základ pro STRÁNKOVÁNÍ (počet stránek = ceil(totalFiltered/records)). U
+   *  „Both" = MAX obou katalogů, protože obě DB se posouvají po stránkách v
+   *  zákrytu (stránka P ukazuje RV[P]+EN[P]) → stránek je co má delší katalog. */
   totalFiltered: number
+  /** Počet do LABELU „results found". Obvykle = totalFiltered; u „Both" = SOUČET
+   *  obou katalogů (kolik chartů je dohromady k procházení), aby Both neukazoval
+   *  stejné číslo jako samotný Encore. */
+  resultCount?: number
   page: number
   records: number
 }

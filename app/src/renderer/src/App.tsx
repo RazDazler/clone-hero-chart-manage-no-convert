@@ -34,6 +34,7 @@ export function App(): JSX.Element {
   const page = useStore((s) => s.page)
   const records = useStore((s) => s.records)
   const totalFiltered = useStore((s) => s.totalFiltered)
+  const resultCount = useStore((s) => s.resultCount)
   const selectedIndex = useStore((s) => s.selectedIndex)
   const jobs = useStore((s) => s.jobs)
   const enqueuedKeys = useStore((s) => s.enqueuedKeys)
@@ -487,7 +488,7 @@ export function App(): JSX.Element {
               </>
             ) : (
               <>
-                <strong>{totalFiltered}</strong> results found
+                <strong>{resultCount || totalFiltered}</strong> results found
                 {query ? (
                   <>
                     {' for '}
