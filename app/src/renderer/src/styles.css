@@ -5948,18 +5948,27 @@ button.badge--owned:hover {
   height: 22px;
   flex-shrink: 0;
   display: inline-block;
-  background: var(--text);
+  /* Spotify zelená natvrdo (dřív bílá, zelená až na hover). */
+  background: #1db954;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
-  transition: background 0.16s ease, transform 0.15s ease;
+  transition: transform 0.25s ease;
 }
+/* Hover: jemné naklonění + zvětšení, stejně jako kostka u „Surprise me". */
 .side-import:hover .side-import__logo {
-  background: #1db954;
-  transform: scale(1.06);
+  transform: rotate(-18deg) scale(1.08);
+}
+@media (prefers-reduced-motion: reduce) {
+  .side-import__logo {
+    transition: none;
+  }
+  .side-import:hover .side-import__logo {
+    transform: none;
+  }
 }
 
 /* ── Modal ── */

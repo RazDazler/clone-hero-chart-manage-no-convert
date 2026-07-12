@@ -132,13 +132,18 @@ export function FilterPanel(): JSX.Element {
   const setHideOwned = useStore((s) => s.setHideOwned)
 
   const encoreOnly = database === 'enchor'
-  const anyBrowse = !!(filters.genre?.length || filters.year?.length || filters.songLength?.length)
+  const anyBrowse = !!(
+    filters.genre?.length ||
+    filters.year?.length ||
+    filters.decade?.length ||
+    filters.songLength?.length
+  )
   const anyRefine = !!(charter || album || hideOwned)
   const anyActive = anyBrowse || anyRefine
 
-  const one = (key: 'genre' | 'year' | 'songLength'): string => filters[key]?.[0] ?? ''
+  const one = (key: 'genre' | 'year' | 'decade' | 'songLength'): string => filters[key]?.[0] ?? ''
   const set =
-    (key: 'genre' | 'year' | 'songLength') =>
+    (key: 'genre' | 'year' | 'decade' | 'songLength') =>
     (v: string): void =>
       setFilter(key, v ? [v] : [])
 
@@ -165,7 +170,7 @@ export function FilterPanel(): JSX.Element {
         <div className="filterpanel__encore">
           <Icon name="info" size={16} />
           <span>
-            Genre, year and length browsing uses <strong>RhythmVerse</strong>. Chorus Encore
+            Genre, year, decade and length browsing uses <strong>RhythmVerse</strong>. Chorus Encore
             filters by instrument (buttons above).
           </span>
           <button
@@ -194,6 +199,13 @@ export function FilterPanel(): JSX.Element {
             value={one('year')}
             options={options?.year ?? []}
             onChange={set('year')}
+          />
+          <FilterSelect
+            label="Decade"
+            placeholder="Any decade"
+            value={one('decade')}
+            options={options?.decade ?? []}
+            onChange={set('decade')}
           />
           <FilterSelect
             label="Song length"

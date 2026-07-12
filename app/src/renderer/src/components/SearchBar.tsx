@@ -248,7 +248,7 @@ export function SearchBar(): JSX.Element {
             activeFilterCount > 0 ? 'searchbar__filters--active' : ''
           }`}
           onClick={() => setShowFilters(!showFilters)}
-          title="Advanced filters — browse by genre, year and length"
+          title="Advanced filters — browse by genre, year, decade and length"
         >
           <Icon name="filter" size={15} />
           <span>Filters</span>

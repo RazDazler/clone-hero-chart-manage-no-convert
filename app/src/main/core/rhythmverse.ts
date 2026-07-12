@@ -337,7 +337,13 @@ export async function fetchFilterOptions(
     genre: dictToOptions(f.genre).sort((a, b) => a.label.localeCompare(b.label)),
     instrument: INSTRUMENT_OPTS,
     difficulty: DIFFICULTY_OPTS,
-    decade: dictToOptions(f.decade, (id) => `${id}s`),
+    decade: dictToOptions(f.decade, (id) => `${id}s`)
+      .filter((o) => {
+        // Stejné „vtípky" jako u roků → jen smysluplné dekády (1900–letošní).
+        const dec = Number(o.id)
+        return Number.isFinite(dec) && dec >= 1900 && dec <= nowYear
+      })
+      .sort((a, b) => Number(b.id) - Number(a.id)),
     year: years,
     songLength: dictToOptions(f.song_length)
   }

@@ -51,7 +51,9 @@ export function SortSelect(): JSX.Element {
         onClick={() => setOpen((o) => !o)}
         title={current.hint}
       >
-        <span>{current.label}</span>
+        {/* Ve výchozím stavu ukaž „Sort by" (samotné „Default" mátlo — nikdo
+            nevěděl, co reprezentuje); po výběru řazení jeho název. */}
+        <span>{current.id === 'relevance' ? 'Sort by' : current.label}</span>
         <Icon name="caret" size={11} className="dd__caret" />
       </button>
       {open ? (

@@ -302,7 +302,7 @@ export const useStore = create<AppState>((set, get) => {
     return (
       s.showFilters ||
       !s.query.trim() ||
-      !!(f.genre?.length || f.year?.length || f.songLength?.length)
+      !!(f.genre?.length || f.year?.length || f.decade?.length || f.songLength?.length)
     )
   }
 
@@ -313,6 +313,7 @@ export const useStore = create<AppState>((set, get) => {
     const f: SearchFilters = {}
     if (s.filters.genre?.length) f.genre = s.filters.genre
     if (s.filters.year?.length) f.year = s.filters.year
+    if (s.filters.decade?.length) f.decade = s.filters.decade
     if (s.filters.songLength?.length) f.songLength = s.filters.songLength
     if (s.instrumentFilters.length) f.instrument = s.instrumentFilters
     return Object.keys(f).length ? f : undefined

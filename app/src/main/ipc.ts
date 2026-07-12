@@ -84,6 +84,7 @@ export function registerIpc(): void {
         const rvOnlyFilter = !!(
           filters?.genre?.length ||
           filters?.year?.length ||
+          filters?.decade?.length ||
           filters?.songLength?.length
         )
         if (rvOnlyFilter) {
