@@ -1071,10 +1071,20 @@ body {
 .filterpanel__inner {
   overflow: hidden;
   min-height: 0;
-  padding: 14px 2px 2px;
+  /* Jen BOČNÍ padding. Vertikální rozestup dáváme přes margin krajních dětí,
+     aby při zavření (roleta grid-template-rows: 0fr) zkolaboval na nulu. Padding
+     na tomto gridovém prvku by nezmizel → horní okraj panelu (v Encore ta orámo-
+     vaná hláška) by vykukoval pod search barem. */
+  padding: 0 2px;
 }
 .filterpanel__inner--open {
   overflow: visible;
+}
+.filterpanel__inner > :first-child {
+  margin-top: 14px;
+}
+.filterpanel__inner > :last-child {
+  margin-bottom: 2px;
 }
 .filterpanel__grid {
   display: grid;
@@ -4405,6 +4415,90 @@ body {
 .results--table .song:last-child {
   border-bottom: none;
 }
+
+/* ---------- Skeleton (načítání výsledků) ---------- */
+/* Placeholder řádky sdílí mřížku s .song, takže při dorazení dat nic neposkočí. */
+.song--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+.sk-main {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+.sk-diffs {
+  display: flex;
+  gap: 14px;
+}
+.sk {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.sk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  animation: skShimmer 1.3s ease-in-out infinite;
+}
+@keyframes skShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.sk--check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+}
+.sk--art {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+}
+.sk--title {
+  width: 60%;
+  height: 14px;
+}
+.sk--sub {
+  width: 40%;
+  height: 11px;
+}
+.sk--chips {
+  width: 28%;
+  height: 10px;
+}
+.sk--diff {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+.sk--btn {
+  width: 100%;
+  height: 34px;
+  border-radius: 10px;
+}
+.sk--dots {
+  width: 4px;
+  height: 16px;
+  border-radius: 3px;
+  justify-self: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk::after {
+    animation: none;
+  }
+}
 .results--table .song--selected {
   background: rgba(var(--accent-rgb), 0.14);
   border-color: transparent;
@@ -5618,8 +5712,9 @@ body {
 /* Sekundární tlačítko „Open store / Get on MEGA" drží outline i v grafitu
    (grafitový primární override na .dl-btn by ho jinak udělal světlé). */
 [data-theme='graphite'] .dl-btn--store {
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
+  /* Průhledný obrys (bez výplně) → jasně sekundární vůči vyplněnému auto-Downloadu. */
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.13);
   color: var(--text-dim);
 }
 [data-theme='graphite'] .dl-btn--store:hover {
@@ -5725,6 +5820,40 @@ body {
 [data-theme='graphite'] .dl-btn:active,
 [data-theme='graphite'] .batchbar__dl:active {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Řadový „Download" (auto-stažitelný) je DEFAULTNĚ klidný tmavý ghost — do bílé
+   se rozsvítí až na hover řádku, ať pravá hrana seznamu nekřičí sloupcem bílých
+   bloků. Samostatná CTA (My Library, Search, batch, pager) zůstávají bílá,
+   manuální --store má vlastní klidný styl. */
+[data-theme='graphite'] .dl-btn:not(.dl-btn--store) {
+  /* Jemně vyplněný „soft chip" s náznakem horního lesku = zjevně hlavní akce,
+     ale klidná. Odlišuje se od manuálních (--store) tlačítek, která jsou jen
+     průhledný obrys. */
+  background: rgba(255, 255, 255, 0.09);
+  color: #eeeef2;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  text-shadow: none;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.15s,
+    transform 0.05s;
+}
+[data-theme='graphite'] .song:hover .dl-btn:not(.dl-btn--store),
+[data-theme='graphite'] .dl-btn:not(.dl-btn--store):hover {
+  background: linear-gradient(180deg, #f3f3f6 0%, #d4d4d8 100%);
+  color: #131315;
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 5px 14px rgba(0, 0, 0, 0.4) !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 /* Launch tlačítka — výraznější vyvýšení. */

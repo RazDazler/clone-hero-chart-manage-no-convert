@@ -452,7 +452,7 @@ export function App(): JSX.Element {
 
       <SearchBar />
 
-      {source.length > 0 && !loading && !error ? (
+      {source.length > 0 && !error ? (
         <div className="resultsbar">
           {checkableSongs.length > 0 ? (
             <label className="chk chk--selectall" title="Select all downloadable songs">
@@ -539,10 +539,30 @@ export function App(): JSX.Element {
 
       <div className="tablewrap">
       <div
-        className={`results ${source.length > 0 && !loading && !error && visible.length > 0 ? 'results--table' : ''}`}
+        className={`results ${loading || (source.length > 0 && !error && visible.length > 0) ? 'results--table' : ''}`}
       >
         {loading ? (
-          <div className="state">Searching…</div>
+          // Skeleton řádky (stejná mřížka jako .song → žádný skok, až dorazí data).
+          <>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div className="song song--skeleton" key={`sk-${i}`} aria-hidden="true">
+                <span className="sk sk--check" />
+                <span className="sk sk--art" />
+                <div className="sk-main">
+                  <span className="sk sk--title" />
+                  <span className="sk sk--sub" />
+                  <span className="sk sk--chips" />
+                </div>
+                <div className="sk-diffs">
+                  {Array.from({ length: 5 }).map((_, d) => (
+                    <span className="sk sk--diff" key={d} />
+                  ))}
+                </div>
+                <span className="sk sk--btn" />
+                <span className="sk sk--dots" />
+              </div>
+            ))}
+          </>
         ) : error ? (
           <div className="state state--error">⚠ {error}</div>
         ) : source.length === 0 ? (
@@ -580,7 +600,7 @@ export function App(): JSX.Element {
       </div>
       </div>
 
-      {source.length > 0 && !loading && !surprise ? (
+      {source.length > 0 && !surprise ? (
         <Pager visibleCount={visible.length} matchTotal={deep ? filteredAll.length : undefined} />
       ) : null}
         </main>
