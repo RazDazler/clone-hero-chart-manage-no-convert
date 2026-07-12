@@ -1,8 +1,6 @@
 <p align="center">
-  <img alt="Chart Manager main window, searching charts" width="900" src="https://github.com/user-attachments/assets/b6681a51-fa9a-4343-9661-1a1ce4ab31b6" />
+  <img alt="Chart Manager main window, searching charts" width="900" src="https://github.com/user-attachments/assets/52bf9aa4-5902-4839-9554-0f538d1268e6" />
 </p>
-
-<p align="center">
   <a href="https://chartmanager.pages.dev/"><b>chartmanager.pages.dev</b></a>
 </p>
 
