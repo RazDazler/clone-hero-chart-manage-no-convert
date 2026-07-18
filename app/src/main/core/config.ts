@@ -161,9 +161,9 @@ function defaults(): AppConfig {
     // (Uložená hodnota uživatele má přednost přes `{...def, ...parsed}` níž.)
     uiScale: isMac ? 0.9 : 1.0,
     hotkeys: {
-      // Show / hide window — Ctrl+I (rychlý "Insert/Invoke" toggle, ergonomický
-      // pro pravou ruku na klávesnici; nepřekrývá běžné herní bindings v CH).
-      toggleOverlay: 'Control+I'
+      // Show / hide window — rychlý toggle. Na macu Command+I (nativní modifikátor),
+      // na Windows Control+I. Nepřekrývá běžné herní bindings v CH.
+      toggleOverlay: isMac ? 'Command+I' : 'Control+I'
     },
     showTips: true, // rotující tipy v liště (uživatel může vypnout)
     showReminder: false, // opt-in
