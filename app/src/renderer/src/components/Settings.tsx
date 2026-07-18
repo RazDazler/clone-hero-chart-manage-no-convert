@@ -7,6 +7,7 @@ import {
 } from '../../../shared/foldertemplate'
 import type { AppConfig, ReminderPosition } from '../../../shared/types'
 import { useStore } from '../store'
+import { IS_MAC } from '../platform'
 import { HotkeyInput } from './HotkeyInput'
 import { Icon } from './Icon'
 
@@ -305,7 +306,7 @@ export function Settings(): JSX.Element | null {
 
           <label className="field">
             <span>
-              Clone Hero.exe path
+              {IS_MAC ? 'Clone Hero.app path' : 'Clone Hero.exe path'}
               {exeStatus?.path === null && !draft.chExePath ? (
                 <em className="field__warn"> — couldn't auto-detect, set manually</em>
               ) : exeStatus?.autoDetected && !draft.chExePath ? (
@@ -319,54 +320,62 @@ export function Settings(): JSX.Element | null {
                 placeholder={
                   exeStatus?.autoDetected && exeStatus.path
                     ? `Using: ${exeStatus.path}`
-                    : 'e.g. C:\\Games\\Clone Hero\\Clone Hero.exe'
+                    : IS_MAC
+                      ? 'e.g. /Applications/Clone Hero.app'
+                      : 'e.g. C:\\Games\\Clone Hero\\Clone Hero.exe'
                 }
                 value={draft.chExePath}
                 onChange={(e) => setDraft({ ...draft, chExePath: e.target.value })}
               />
-              <button onClick={pickChExe} title="Browse for Clone Hero.exe">
+              <button onClick={pickChExe} title="Browse for Clone Hero">
                 …
               </button>
             </div>
             <p className="field__hint">
               Used by the <strong>Launch Clone Hero</strong> button. Leave blank to use
-              auto-detection (parent of the Songs folder, then known install paths).
+              auto-detection{' '}
+              {IS_MAC
+                ? '(standard /Applications location).'
+                : '(parent of the Songs folder, then known install paths).'}
             </p>
           </label>
 
-          <label className="field">
-            <span>
-              YARG.exe path
-              {yargStatus?.path === null && !draft.yargExePath ? (
-                <em className="field__hint" style={{ marginLeft: 6 }}>
-                  — not detected (set manually if installed)
-                </em>
-              ) : yargStatus?.autoDetected && !draft.yargExePath ? (
-                <em className="field__hint" style={{ marginLeft: 6 }}>
-                  — auto-detected, override below if needed
-                </em>
-              ) : null}
-            </span>
-            <div className="field__row">
-              <input
-                placeholder={
-                  yargStatus?.autoDetected && yargStatus.path
-                    ? `Using: ${yargStatus.path}`
-                    : 'e.g. C:\\YARG\\Content\\YARG Installs\\<GUID>\\installation\\YARG.exe'
-                }
-                value={draft.yargExePath}
-                onChange={(e) => setDraft({ ...draft, yargExePath: e.target.value })}
-              />
-              <button onClick={pickYargExe} title="Browse for YARG.exe">
-                …
-              </button>
-            </div>
-            <p className="field__hint">
-              Used by the overlay + hotkey to detect YARG. CHM also brings YARG back to the
-              foreground when you hide this window. YARG reads charts from Clone Hero's Songs
-              folder, so no separate library is needed.
-            </p>
-          </label>
+          {/* YARG má oficiální build jen na Windows — na macu pole skryjeme. */}
+          {!IS_MAC && (
+            <label className="field">
+              <span>
+                YARG.exe path
+                {yargStatus?.path === null && !draft.yargExePath ? (
+                  <em className="field__hint" style={{ marginLeft: 6 }}>
+                    — not detected (set manually if installed)
+                  </em>
+                ) : yargStatus?.autoDetected && !draft.yargExePath ? (
+                  <em className="field__hint" style={{ marginLeft: 6 }}>
+                    — auto-detected, override below if needed
+                  </em>
+                ) : null}
+              </span>
+              <div className="field__row">
+                <input
+                  placeholder={
+                    yargStatus?.autoDetected && yargStatus.path
+                      ? `Using: ${yargStatus.path}`
+                      : 'e.g. C:\\YARG\\Content\\YARG Installs\\<GUID>\\installation\\YARG.exe'
+                  }
+                  value={draft.yargExePath}
+                  onChange={(e) => setDraft({ ...draft, yargExePath: e.target.value })}
+                />
+                <button onClick={pickYargExe} title="Browse for YARG.exe">
+                  …
+                </button>
+              </div>
+              <p className="field__hint">
+                Used by the overlay + hotkey to detect YARG. CHM also brings YARG back to the
+                foreground when you hide this window. YARG reads charts from Clone Hero's Songs
+                folder, so no separate library is needed.
+              </p>
+            </label>
+          )}
               </section>
             </div>
 

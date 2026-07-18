@@ -3,6 +3,7 @@
 import { app, BrowserWindow } from 'electron'
 import { registerIpc, stopGamePoll } from './ipc'
 import { registerHotkeys, unregisterHotkeys } from './hotkeys'
+import { setupAppMenu } from './menu'
 import { createOverlay, getOverlay, revealOverlay } from './overlay'
 import { destroyReminder } from './reminder'
 import { createTray, destroyTray } from './tray'
@@ -17,6 +18,7 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(() => {
+    setupAppMenu()
     registerIpc()
     createOverlay()
     createTray()

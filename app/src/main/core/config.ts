@@ -2,9 +2,11 @@
 
 import { app } from 'electron'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
+import { homedir } from 'os'
 import { dirname, join } from 'path'
 import { DEFAULT_FOLDER_TEMPLATE } from '../../shared/foldertemplate'
 import type { AppConfig } from '../../shared/types'
+import { cloneHeroArtifactName, isMac, onyxBinaryName, sevenZipBinaryName } from './platform'
 
 let cached: AppConfig | null = null
 
@@ -76,7 +78,14 @@ function findFile(roots: string[], fileName: string, maxDepth: number): string |
 
 /** Zkusí najít složku hry Clone Hero a vrátí cestu k jejímu Songs adresáři. */
 function detectSongsDir(): string {
+  // macOS: hra kvůli sandboxu NEUKLÁDÁ Songs vedle .app bundlu, ale do
+  // Application Support. Je to pevné a spolehlivé — bereme to jako default.
+  if (isMac) {
+    return join(homedir(), 'Library', 'Application Support', 'com.srylain.CloneHero', 'Songs')
+  }
+
   const fallback = 'G:\\Clone Hero\\Songs'
+  const chArtifact = cloneHeroArtifactName() // 'Clone Hero.exe' na Windows
   const candidates: string[] = []
   for (const start of rootCandidates()) {
     let dir = start
@@ -88,7 +97,7 @@ function detectSongsDir(): string {
     }
   }
   for (const dir of candidates) {
-    if (existsSync(join(dir, 'Clone Hero.exe'))) return join(dir, 'Songs')
+    if (existsSync(join(dir, chArtifact))) return join(dir, 'Songs')
     if (existsSync(join(dir, 'Clone Hero_Data')) && existsSync(join(dir, 'Songs'))) {
       return join(dir, 'Songs')
     }
@@ -96,24 +105,27 @@ function detectSongsDir(): string {
   return fallback
 }
 
-/** Najde přibalené onyx.exe (vedle exe ve složce `onyx`), nebo dev cestu. */
+/** Najde přibalenou Onyx binárku (vedle exe ve složce `onyx`), nebo dev cestu. */
 function detectOnyxPath(): string {
   const roots = [
     ...rootCandidates().map((r) => join(r, 'onyx')),
-    ...rootCandidates().map((r) => join(r, 'native', 'onyx'))
+    ...rootCandidates().map((r) => join(r, 'native', 'onyx')),
+    // macOS dev: rozbalený onyx-macos-x64 bundle.
+    ...rootCandidates().map((r) => join(r, 'native', 'onyx-mac'))
   ]
-  return findFile(roots, 'onyx.exe', 3) ?? ''
+  return findFile(roots, onyxBinaryName(), 3) ?? ''
 }
 
-/** Najde složku se 7z.exe (vedle exe ve složce `tools`), nebo dev C3 bin. */
+/** Najde složku se 7-Zip CLI (vedle exe ve složce `tools`), nebo dev bin. */
 function detect7zDir(): string {
   const roots = [
     ...rootCandidates().map((r) => join(r, 'tools')),
     ...rootCandidates().map((r) => join(r, 'native', '7zip')),
+    ...rootCandidates().map((r) => join(r, 'native', '7zip-mac')),
     ...rootCandidates().map((r) => join(r, 'C3 CON TOOLS', 'bin')),
     ...rootCandidates()
   ]
-  const hit = findFile(roots, '7z.exe', 2)
+  const hit = findFile(roots, sevenZipBinaryName(), 2)
   return hit ? dirname(hit) : ''
 }
 
