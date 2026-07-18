@@ -144,7 +144,10 @@ function defaults(): AppConfig {
     // sidebar nevejde a Import playlist tlačítko končí pod foldem. `{...def,
     // ...parsed}` níž zajistí, že kdo má vlastní hodnotu uloženou, tomu zůstane
     // (včetně těch, co historicky zdědili 1.2 — nepřepíšeme je násilím).
-    uiScale: 1.0,
+    // macOS má typicky Retina displej + jiné DPI chování než Windows — 100 % tam
+    // působí o kus větší. Default 0.9 UI na Macu srovná pocitovou velikost.
+    // (Uložená hodnota uživatele má přednost přes `{...def, ...parsed}` níž.)
+    uiScale: isMac ? 0.9 : 1.0,
     hotkeys: {
       // Show / hide window — Ctrl+I (rychlý "Insert/Invoke" toggle, ergonomický
       // pro pravou ruku na klávesnici; nepřekrývá běžné herní bindings v CH).
