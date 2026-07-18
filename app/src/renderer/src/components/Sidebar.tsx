@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Database, RhythmVerseSystem, UpdateAvailable } from '../../../shared/types'
+import { errMsg } from '../../../shared/errors'
 import chLogo from '../assets/CloneHero_Logo.png'
 import spotifyMark from '../assets/Spotify_Primary_Logo.webp'
 import yargLogo from '../assets/YARG_Logo.png'
@@ -132,7 +133,7 @@ export function Sidebar(): JSX.Element {
     } catch (e) {
       setDownloading(false)
       setPercent(null)
-      window.alert(`Update download failed: ${e instanceof Error ? e.message : String(e)}`)
+      window.alert(`Update download failed: ${errMsg(e)}`)
     }
   }
 

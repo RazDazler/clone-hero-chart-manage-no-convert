@@ -177,7 +177,7 @@ export function Settings(): JSX.Element | null {
         if (e.target === e.currentTarget) cancelSettings()
       }}
     >
-      <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="modal modal--settings" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal__head">
           <h2>Settings</h2>
           <button className="modal__close" onClick={cancelSettings}>
@@ -185,7 +185,11 @@ export function Settings(): JSX.Element | null {
           </button>
         </div>
 
-        <div className="modal__body">
+        <div className="modal__body settings-body">
+          <div className="settings-cols">
+            <div className="settings-col">
+              <section className="settings-group">
+                <h3 className="settings-group__title">Library &amp; paths</h3>
           <label className="field">
             <span>Songs folder (Clone Hero library)</span>
             <div className="field__row">
@@ -363,7 +367,12 @@ export function Settings(): JSX.Element | null {
               folder, so no separate library is needed.
             </p>
           </label>
+              </section>
+            </div>
 
+            <div className="settings-col">
+              <section className="settings-group">
+                <h3 className="settings-group__title">Interface</h3>
           <div className="field field--inline">
             <label className="field">
               <span>Results per page</span>
@@ -379,6 +388,53 @@ export function Settings(): JSX.Element | null {
             </label>
           </div>
 
+          <fieldset className="field">
+            <span>
+              UI scale
+              <span
+                className="info"
+                title="Make the whole interface bigger or smaller. This stacks on top of your Windows display scaling, so it's handy on very high-resolution (4K) screens where things can look small."
+              >
+                <Icon name="info" size={13} />
+              </span>
+            </span>
+            <div className="scaler">
+              <button
+                type="button"
+                className="scaler__btn"
+                onClick={() => setScale((draft.uiScale ?? 1) - 0.1)}
+                disabled={(draft.uiScale ?? 1) <= 0.7}
+                aria-label="Smaller"
+              >
+                −
+              </button>
+              <span className="scaler__val">{Math.round((draft.uiScale ?? 1) * 100)}%</span>
+              <button
+                type="button"
+                className="scaler__btn"
+                onClick={() => setScale((draft.uiScale ?? 1) + 0.1)}
+                disabled={(draft.uiScale ?? 1) >= 1.6}
+                aria-label="Bigger"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                className="linkbtn scaler__reset"
+                onClick={() => setScale(1)}
+                disabled={(draft.uiScale ?? 1) === 1}
+              >
+                Reset
+              </button>
+            </div>
+            <p className="field__hint">
+              Stacks on top of Windows display scaling. Preview updates live; click Save to keep it.
+            </p>
+          </fieldset>
+              </section>
+
+              <section className="settings-group">
+                <h3 className="settings-group__title">Game overlay</h3>
           <fieldset className="field">
             <span>
               Hotkey reminder over the game
@@ -439,50 +495,9 @@ export function Settings(): JSX.Element | null {
               <code>F10</code> or <code>Control+Shift+H</code>); Backspace clears it.
             </p>
           </fieldset>
-
-          <fieldset className="field">
-            <span>
-              UI scale
-              <span
-                className="info"
-                title="Make the whole interface bigger or smaller. This stacks on top of your Windows display scaling, so it's handy on very high-resolution (4K) screens where things can look small."
-              >
-                <Icon name="info" size={13} />
-              </span>
-            </span>
-            <div className="scaler">
-              <button
-                type="button"
-                className="scaler__btn"
-                onClick={() => setScale((draft.uiScale ?? 1) - 0.1)}
-                disabled={(draft.uiScale ?? 1) <= 0.7}
-                aria-label="Smaller"
-              >
-                −
-              </button>
-              <span className="scaler__val">{Math.round((draft.uiScale ?? 1) * 100)}%</span>
-              <button
-                type="button"
-                className="scaler__btn"
-                onClick={() => setScale((draft.uiScale ?? 1) + 0.1)}
-                disabled={(draft.uiScale ?? 1) >= 1.6}
-                aria-label="Bigger"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                className="linkbtn scaler__reset"
-                onClick={() => setScale(1)}
-                disabled={(draft.uiScale ?? 1) === 1}
-              >
-                Reset
-              </button>
+              </section>
             </div>
-            <p className="field__hint">
-              Stacks on top of Windows display scaling. Preview updates live; click Save to keep it.
-            </p>
-          </fieldset>
+          </div>
         </div>
 
         <div className="modal__foot">

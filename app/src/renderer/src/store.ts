@@ -11,7 +11,8 @@ import type {
   SortKey
 } from '../../shared/types'
 import { SORT_DEFAULT_DIR } from '../../shared/types'
-import { mergeKey } from '../../shared/songid'
+import { mergeBoth } from '../../shared/songid'
+import { asError, errMsg } from '../../shared/errors'
 import {
   ENCORE_PER_PAGE_MAX,
   RV_CHUNK,
@@ -405,6 +406,47 @@ export const useStore = create<AppState>((set, get) => {
    *  stejném počtu requestů. Zobrazení pak stránkuje lokálně po `records`. */
   const DEEP_FETCH = 100
 
+  // ── Sdílené kroky „výběr cíle → zařazení do fronty" ────────────────────────
+  // Tytéž tři kroky se opakovaly ve všech download tocích (jednotlivý / dávka /
+  // lokální drop). Tady jsou jednou, ať se guardy a error handling nerozejdou.
+
+  /** Načte cílové podsložky knihovny do stavu (pro modal výběru cíle). Volající
+   *  už nastavil `foldersLoading: true`. Selhání není fatální — nabídne prázdný
+   *  seznam (uživatel napíše vlastní / nechá kořen). */
+  const loadFolders = async (): Promise<void> => {
+    try {
+      const folders = await window.api.listSongFolders()
+      set({ folders, foldersLoading: false })
+    } catch {
+      set({ folders: [], foldersLoading: false })
+    }
+  }
+
+  /** Zařadí JEDNU píseň a zapamatuje jobId (guard proti dvojkliku + stav řádku).
+   *  Chybu vloží do `error`. */
+  const enqueueOne = async (song: SongResult, subfolder?: string): Promise<void> => {
+    try {
+      const jobId = await window.api.enqueueDownload(song, subfolder)
+      set((s) => ({ enqueuedKeys: { ...s.enqueuedKeys, [song.key]: jobId } }))
+    } catch (e) {
+      set({ error: errMsg(e) })
+    }
+  }
+
+  /** Zařadí DÁVKU písní; jednotlivé selhání dávku nezastaví (jen tu píseň
+   *  vynechá). Nasbíraná jobId se slijí do `enqueuedKeys` naráz. */
+  const enqueueMany = async (songs: SongResult[], subfolder?: string): Promise<void> => {
+    const newEntries: Record<string, string> = {}
+    for (const song of songs) {
+      try {
+        newEntries[song.key] = await window.api.enqueueDownload(song, subfolder)
+      } catch {
+        /* jednotlivé selhání nezastaví dávku */
+      }
+    }
+    set((s) => ({ enqueuedKeys: { ...s.enqueuedKeys, ...newEntries } }))
+  }
+
   /**
    * Stáhne postupně všechny stránky aktuálního dotazu (do stropu) a nabaluje
    * je do `deepSongs`. UI pak filtruje + stránkuje lokálně, takže shody jdou
@@ -473,7 +515,7 @@ export const useStore = create<AppState>((set, get) => {
       set({
         deepLoading: false,
         loading: false,
-        error: e instanceof Error ? e.message : String(e)
+        error: errMsg(e)
       })
     }
   }
@@ -494,7 +536,10 @@ export const useStore = create<AppState>((set, get) => {
   results: [],
   totalFiltered: 0,
   resultCount: 0,
-  loading: false,
+  // Start rovnou ve `loading` stavu → první snímek je skeleton, ne záblesk
+  // prázdného „Search for a song…" (mount effect stejně hned spustí browse
+  // katalogu, který `loading` po dorazení dat vypne).
+  loading: true,
   error: null,
   selectedIndex: -1,
   jobs: {},
@@ -794,7 +839,7 @@ export const useStore = create<AppState>((set, get) => {
       })
     } catch (e) {
       if (myReq !== searchSeq) return
-      set({ loading: false, surprise: false, error: e instanceof Error ? e.message : String(e) })
+      set({ loading: false, surprise: false, error: errMsg(e) })
     }
   },
   /** Kanonický „clear all" — vyčistí VŠECHNY filtry (nástroj, obtížnost,
@@ -895,24 +940,13 @@ export const useStore = create<AppState>((set, get) => {
         ])
         if (myReq !== searchSeq) return
         if (rvR.status === 'rejected' && enR.status === 'rejected') {
-          throw rvR.reason instanceof Error ? rvR.reason : new Error(String(rvR.reason))
+          throw asError(rvR.reason)
         }
         const rv = rvR.status === 'fulfilled' ? rvR.value : null
         const enSongs = enR.status === 'fulfilled' ? enR.value.songs : []
         const enTot = enR.status === 'fulfilled' ? enR.value.totalFiltered : 0
-        const seen = new Set<string>()
-        const merged: SongResult[] = []
-        // Stejné slučování jako mělké „Both" v ipc.ts: u „Most downloaded" napřed
-        // RhythmVerse (Encore downloads nemá), jinak Encore první (.sng spolehlivost).
-        const rvSongs = rv ? rv.songs : []
-        const ordered = sort === 'downloads' ? [...rvSongs, ...enSongs] : [...enSongs, ...rvSongs]
-        for (const s of ordered) {
-          const k = mergeKey(s)
-          if (seen.has(k)) continue
-          seen.add(k)
-          merged.push(s)
-        }
-        songs = merged
+        // Stejné slučování jako mělké „Both" v ipc.ts (sdílený `mergeBoth`).
+        songs = mergeBoth(rv ? rv.songs : [], enSongs, sort)
         total = Math.max(rv ? rv.total : 0, enTot)
         rcount = (rv ? rv.total : 0) + enTot
       } else if (database === 'rhythmverse' && page > RV_PAGE_CAP) {
@@ -948,7 +982,7 @@ export const useStore = create<AppState>((set, get) => {
       })
     } catch (e) {
       if (myReq !== searchSeq) return
-      set({ loading: false, error: e instanceof Error ? e.message : String(e) })
+      set({ loading: false, error: errMsg(e) })
     }
   },
 
@@ -973,21 +1007,11 @@ export const useStore = create<AppState>((set, get) => {
     // pořád nabízí poslední zvolenou složku.
     if (get().config?.autoTargetFolder) {
       if (get().enqueuedKeys[song.key]) return // guard proti dvojkliku
-      try {
-        const jobId = await window.api.enqueueDownload(song, undefined)
-        set((s) => ({ enqueuedKeys: { ...s.enqueuedKeys, [song.key]: jobId } }))
-      } catch (e) {
-        set({ error: e instanceof Error ? e.message : String(e) })
-      }
+      await enqueueOne(song)
       return
     }
     set({ pendingSong: song, foldersLoading: true })
-    try {
-      const folders = await window.api.listSongFolders()
-      set({ folders, foldersLoading: false })
-    } catch {
-      set({ folders: [], foldersLoading: false })
-    }
+    await loadFolders()
   },
 
   confirmDownload: async (subfolder) => {
@@ -996,12 +1020,7 @@ export const useStore = create<AppState>((set, get) => {
     // Pending nulujeme HNED — držení Enteru / dvojklik by jinak zařadily
     // tutéž píseň vícekrát (guard proti opakovanému confirmu během await).
     set({ pendingSong: null, lastSubfolder: subfolder })
-    try {
-      const jobId = await window.api.enqueueDownload(song, subfolder || undefined)
-      set((s) => ({ enqueuedKeys: { ...s.enqueuedKeys, [song.key]: jobId } }))
-    } catch (e) {
-      set({ error: e instanceof Error ? e.message : String(e) })
-    }
+    await enqueueOne(song, subfolder || undefined)
   },
 
   cancelDownload: () => set({ pendingSong: null }),
@@ -1024,25 +1043,11 @@ export const useStore = create<AppState>((set, get) => {
     // „Auto" → přeskoč výběr cíle, zařaď rovnou (viz `openDownload`).
     if (get().config?.autoTargetFolder) {
       set({ selectedKeys: [] })
-      const newEntries: Record<string, string> = {}
-      for (const song of downloadable) {
-        try {
-          const jobId = await window.api.enqueueDownload(song, undefined)
-          newEntries[song.key] = jobId
-        } catch {
-          /* jednotlivé selhání nezastaví dávku */
-        }
-      }
-      set((s) => ({ enqueuedKeys: { ...s.enqueuedKeys, ...newEntries } }))
+      await enqueueMany(downloadable)
       return
     }
     set({ pendingBatch: downloadable, foldersLoading: true })
-    try {
-      const folders = await window.api.listSongFolders()
-      set({ folders, foldersLoading: false })
-    } catch {
-      set({ folders: [], foldersLoading: false })
-    }
+    await loadFolders()
   },
   confirmBatchDownload: async (subfolder) => {
     const batch = get().pendingBatch
@@ -1050,16 +1055,7 @@ export const useStore = create<AppState>((set, get) => {
     // Guard proti dvojímu confirmu (držení Enteru) — jinak by se celá dávka
     // zařadila dvakrát.
     set({ pendingBatch: null, selectedKeys: [], lastSubfolder: subfolder })
-    const newEntries: Record<string, string> = {}
-    for (const song of batch) {
-      try {
-        const jobId = await window.api.enqueueDownload(song, subfolder || undefined)
-        newEntries[song.key] = jobId
-      } catch {
-        /* jednotlivé selhání nezastaví dávku */
-      }
-    }
-    set((s) => ({ enqueuedKeys: { ...s.enqueuedKeys, ...newEntries } }))
+    await enqueueMany(batch, subfolder || undefined)
   },
   cancelBatchDownload: () => set({ pendingBatch: null }),
 
@@ -1067,12 +1063,7 @@ export const useStore = create<AppState>((set, get) => {
   openLocalBatch: async (paths) => {
     if (paths.length === 0) return
     set({ pendingLocalBatch: paths, foldersLoading: true })
-    try {
-      const folders = await window.api.listSongFolders()
-      set({ folders, foldersLoading: false })
-    } catch {
-      set({ folders: [], foldersLoading: false })
-    }
+    await loadFolders()
   },
   confirmLocalBatch: async (subfolder) => {
     const paths = get().pendingLocalBatch
@@ -1088,7 +1079,7 @@ export const useStore = create<AppState>((set, get) => {
         return { enqueuedKeys }
       })
     } catch (e) {
-      set({ error: e instanceof Error ? e.message : String(e) })
+      set({ error: errMsg(e) })
     }
   },
   cancelLocalBatch: () => set({ pendingLocalBatch: null }),
@@ -1136,12 +1127,7 @@ export const useStore = create<AppState>((set, get) => {
       },
       foldersLoading: true
     })
-    try {
-      const folders = await window.api.listSongFolders()
-      set({ folders, foldersLoading: false })
-    } catch {
-      set({ folders: [], foldersLoading: false })
-    }
+    await loadFolders()
   },
   cancelLocalDrop: () => set({ pendingLocal: null }),
   confirmLocalDrop: async (artist, title, subfolder) => {
@@ -1182,7 +1168,7 @@ export const useStore = create<AppState>((set, get) => {
       )
       set((s) => ({ enqueuedKeys: { ...s.enqueuedKeys, [localSong.key]: jobId } }))
     } catch (e) {
-      set({ error: e instanceof Error ? e.message : String(e) })
+      set({ error: errMsg(e) })
     }
   },
 

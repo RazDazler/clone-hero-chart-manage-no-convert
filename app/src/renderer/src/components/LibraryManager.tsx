@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { LibEntry, SongDetail } from '../../../shared/types'
+import { errMsg } from '../../../shared/errors'
 import { useStore } from '../store'
 import { formatLength, stripTags } from '../utils'
 import { RichText } from './RichText'
@@ -159,7 +160,7 @@ export function LibraryManager(): JSX.Element | null {
       }
     } catch (e) {
       if (my !== loadSeq.current) return
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
     } finally {
       if (my === loadSeq.current) setLoading(false)
     }
@@ -208,7 +209,7 @@ export function LibraryManager(): JSX.Element | null {
       await fn()
       await load(cwd)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
     }
   }
 

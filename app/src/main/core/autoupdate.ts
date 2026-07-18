@@ -15,6 +15,7 @@ import { app, ipcMain, type BrowserWindow } from 'electron'
 import updaterPkg from 'electron-updater'
 import { checkForUpdate, isNewer } from './update'
 import type { UpdateCheckResult } from '../../shared/types'
+import { errMsg } from '../../shared/errors'
 
 const { autoUpdater } = updaterPkg
 
@@ -61,7 +62,7 @@ export function initAutoUpdate(getWin: () => BrowserWindow | null): void {
       await autoUpdater.downloadUpdate()
       return { ok: true }
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+      return { ok: false, error: errMsg(e) }
     }
   })
   ipcMain.handle('update:install', () => {
@@ -96,9 +97,12 @@ export function initAutoUpdate(getWin: () => BrowserWindow | null): void {
     return { status: 'uptodate', version: info.current }
   })
 
-  // Kontrola po startu. Chyby (nepackovaný build, portable, offline) jdou do
-  // 'error' handleru, který spustí fallback.
-  autoUpdater.checkForUpdates().catch(() => {
-    /* zpracováno v 'error' */
-  })
+  // Kontrola po startu — ODLOŽENÁ o pár sekund, ať síť + práce electron-updateru
+  // nekonkuruje prvnímu vykreslení a úvodnímu hledání. Update není nic urgentního.
+  // Chyby (nepackovaný build, portable, offline) jdou do 'error' handleru (fallback).
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(() => {
+      /* zpracováno v 'error' */
+    })
+  }, 4000)
 }

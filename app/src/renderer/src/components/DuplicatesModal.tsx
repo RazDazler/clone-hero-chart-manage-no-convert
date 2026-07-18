@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { DupExtras, DupGroup, SongDetail } from '../../../shared/types'
+import { errMsg } from '../../../shared/errors'
 import { useStore } from '../store'
 import { formatLength, stripTags } from '../utils'
 import { Icon } from './Icon'
@@ -158,7 +159,7 @@ export function DuplicatesModal({
     try {
       setGroups(await window.api.libFindDuplicates(sc.size ? [...sc] : undefined))
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
       setGroups([])
     }
   }
@@ -197,7 +198,7 @@ export function DuplicatesModal({
       try {
         await window.api.libTrash(rel)
       } catch (e) {
-        failed = e instanceof Error ? e.message : String(e)
+        failed = errMsg(e)
       }
     }
     onChanged()
@@ -225,7 +226,7 @@ export function DuplicatesModal({
       // Zapamatuj složku pro příště (i pro předvyplnění dialogu).
       void useStore.getState().saveConfig({ dupMoveDir: dir })
     } catch (e) {
-      failed = e instanceof Error ? e.message : String(e)
+      failed = errMsg(e)
     }
     onChanged()
     await scan() // i po chybě — část položek už mohla být přesunuta

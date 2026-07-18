@@ -7,6 +7,7 @@ import { tmpdir } from 'os'
 import { basename, join } from 'path'
 import { randomUUID } from 'crypto'
 import type { DownloadJob, JobStage, SongResult } from '../../shared/types'
+import { errMsg } from '../../shared/errors'
 import { downloadDriveFolder, downloadTo, guessFileName, isDriveFolder } from './download'
 import { extract } from './extractor'
 import {
@@ -399,7 +400,7 @@ class JobManager extends EventEmitter {
         this.update(id, {
           stage: 'error',
           progress: -1,
-          error: err instanceof Error ? err.message : String(err)
+          error: errMsg(err)
         })
       }
     } finally {

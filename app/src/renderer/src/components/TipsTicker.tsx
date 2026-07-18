@@ -21,6 +21,7 @@ export function TipsTicker(): JSX.Element {
   const configLoaded = useStore((s) => !!s.config)
   const saveConfig = useStore((s) => s.saveConfig)
 
+  const rootRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLSpanElement>(null)
   const busy = useRef(false)
   const suppress = useRef(false) // potlač hover-label, dokud myš neodjede
@@ -52,6 +53,7 @@ export function TipsTicker(): JSX.Element {
     window.setTimeout(() => {
       apply()
       b.classList.remove('tips__body--swap')
+      refit() // nový text = jiná délka → přeměř, jestli se ještě vejde
     }, FADE_MS)
   }
   // Při hoveru podržíme šířku řádky (min-width = šířka tipu), aby se po přepnutí
@@ -64,6 +66,21 @@ export function TipsTicker(): JSX.Element {
   const release = (): void => {
     const b = bodyRef.current
     if (b) b.style.minWidth = ''
+  }
+
+  // Vejde se aktuální tip vedle žárovky? Když ne (úzké okno / vyšší UI scale, kde
+  // zoom zmenší efektivní viewport), NEcháme ho ořízlý uprostřed věty — místo toho
+  // schováme celý text (třída `tips--tight` → šířka 0) a necháme jen žárovku. Jakmile
+  // je zase místo, tip se vrátí. `scrollWidth` drží přirozenou šířku i při width:0,
+  // takže se měření nezacyklí (žádný flicker show/hide).
+  const refit = (): void => {
+    const root = rootRef.current
+    const body = bodyRef.current
+    if (!root || !body) return
+    const bulbW = root.querySelector('.tips__bulb')?.getBoundingClientRect().width ?? 15
+    const padR = parseFloat(getComputedStyle(root).paddingRight) || 0
+    const avail = root.clientWidth - padR - bulbW - 9 /* margin-right těla */
+    root.classList.toggle('tips--tight', body.scrollWidth > avail + 1)
   }
 
   // Aplikuj stav (collapse/expand). Animuje jen při SKUTEČNÉ změně oproti minule
@@ -87,6 +104,7 @@ export function TipsTicker(): JSX.Element {
       setText(collapsed ? '' : TIPS[iRef.current])
       setP(0, false)
       busy.current = false
+      refit()
       return undefined
     }
 
@@ -133,6 +151,18 @@ export function TipsTicker(): JSX.Element {
     return () => clearInterval(id)
   }, [])
 
+  // Přeměř vejití při každé změně šířky lišty — pokrývá resize okna i změnu UI
+  // scale (zoom mění efektivní viewport, což ResizeObserver zachytí). Bez toho by
+  // se tip po zvětšení scale tiše ořízl.
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return undefined
+    const ro = new ResizeObserver(() => refit())
+    ro.observe(root)
+    refit() // počáteční stav
+    return () => ro.disconnect()
+  }, [])
+
   const onToggle = (): void => {
     if (busy.current) return
     busy.current = true // okamžitá pojistka; effect ho po animaci uvolní
@@ -161,7 +191,7 @@ export function TipsTicker(): JSX.Element {
   }
 
   return (
-    <div className={`tips ${showTips ? 'tips--on' : ''}`}>
+    <div className={`tips ${showTips ? 'tips--on' : ''}`} ref={rootRef}>
       <div
         className="tips__stage"
         role="button"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { PlaylistAddResult, PlaylistInfo } from '../../../shared/types'
+import { errMsg } from '../../../shared/errors'
 
 /** Přidá vybrané písně (rel cesty) do Clone Hero playlistu — nového nebo existujícího. */
 export function PlaylistDialog({
@@ -34,7 +35,7 @@ export function PlaylistDialog({
     try {
       setResult(await window.api.libAddToPlaylist(t, rels))
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
     } finally {
       setBusy(false)
     }

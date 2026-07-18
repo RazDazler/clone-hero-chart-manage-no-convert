@@ -2865,6 +2865,44 @@ body {
   padding: 1px 5px;
   border-radius: 4px;
 }
+
+/* ---------- Settings: 2sloupcové rozložení bez scrollování ----------
+   Širší modal + mřížka sekcí, ať se vše vejde na výšku a přidávání dalšího
+   nastavení = přidat pole do sekce (nebo přidat sekci). */
+.modal--settings {
+  width: 880px;
+}
+.settings-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start; /* sloupce nezávisle na výšce (levý může být delší) */
+}
+.settings-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+/* Sekce = jemný tónovaný panel s nadpisem (BEZ rámečku — uvnitř bývají další
+   orámované prvky jako .field--disc, aby nevznikla „karta v kartě"). */
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 13px 14px 15px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.022);
+  min-width: 0;
+}
+.settings-group__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
 .hk {
   display: flex;
   flex-direction: column;
@@ -4832,6 +4870,14 @@ body {
 .tips__body--swap {
   opacity: 0;
 }
+/* Málo místa (úzké okno / vyšší UI scale) → tip se nevejde. Místo oříznutého
+   útržku uprostřed věty ho schováme celý (šířka 0) a necháme jen žárovku; text se
+   nadále měří přes scrollWidth, takže se po uvolnění místa zase objeví. */
+.tips--tight .tips__body {
+  width: 0;
+  margin-right: 0;
+  overflow: hidden;
+}
 /* Žárovka — pevná kotva vpravo; na hover se jemně posune doleva. Patice je VŽDY
    bílá; sklo (baňka) svítí žlutě + glow jen když tipy běží (.tips--on), jinak je
    taky bílé („zhasnuté"). Výplň (radiální gradient v SVG) je jen v horní části. */
@@ -5122,12 +5168,36 @@ body {
 .sk-main {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 7px;
   min-width: 0;
 }
+/* Řádek odznaků — zrcadlí .song__meta (gap 9px). */
+.sk-meta {
+  display: flex;
+  gap: 9px;
+  margin-top: 1px;
+}
+/* Blok nástrojů — zrcadlí KOMPAKTNÍ rozměry řádků v tabulce (`.song .instrument*`,
+   ne základní `.instrument`): sloupec 56px, gap 10px, aby se vešel do 340px sloupce
+   a nenatlačil download tlačítko. */
 .sk-diffs {
   display: flex;
-  gap: 14px;
+  gap: 10px;
+  flex-shrink: 0;
+  align-items: center;
+  padding-left: 6px;
+}
+.sk-inst {
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+/* Řada teček uvnitř sloupce — zrcadlí `.song .instrument .dots` (gap 2.5px). */
+.sk-inst-dots {
+  display: flex;
+  gap: 2.5px;
 }
 .sk {
   position: relative;
@@ -5164,20 +5234,42 @@ body {
   border-radius: 8px;
 }
 .sk--title {
-  width: 60%;
-  height: 14px;
+  width: 58%;
+  height: 15px;
 }
 .sk--sub {
   width: 40%;
-  height: 11px;
+  height: 12px;
 }
-.sk--chips {
-  width: 28%;
-  height: 10px;
+/* Odznaky — pilulky výšky a rádiusu .badge, různé šířky (čas / formát / obtížnost). */
+.sk--pill {
+  height: 17px;
+  border-radius: 7px;
 }
-.sk--diff {
-  width: 20px;
-  height: 20px;
+.sk--pill-len {
+  width: 42px;
+}
+.sk--pill-fmt {
+  width: 76px;
+}
+.sk--pill-diff {
+  width: 58px;
+}
+/* Jeden nástrojový sloupec — kompaktní jako v tabulce: ikona 16px, popisek ~28px,
+   tečky 6px (= `.song .instrument .dot`). */
+.sk--inst-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+.sk--inst-label {
+  width: 28px;
+  height: 7px;
+  border-radius: 4px;
+}
+.sk--dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
 }
 .sk--btn {
@@ -5190,6 +5282,20 @@ body {
   height: 16px;
   border-radius: 3px;
   justify-self: center;
+}
+/* Skeleton lišty / pageru = jen REZERVA MÍSTA (prázdné, průhledné). Drží výšku
+   lišty a pageru, aby se .tablewrap neroztáhl přes ně a shimmer zůstal v okně
+   výsledků — ale bez rámečku, accentu i placeholderů (žádné shimmer prvky). */
+.resultsbar--skeleton {
+  min-height: 40px; /* = výška reálné lišty (padding 4px + obsah ~32px) */
+  pointer-events: none;
+}
+.resultsbar--skeleton::before {
+  display: none; /* žádný barevný accent u prázdné lišty */
+}
+.pager--skeleton {
+  min-height: 52px; /* = výška reálného pageru (padding 10px + tlačítka 32px) */
+  pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .sk::after {

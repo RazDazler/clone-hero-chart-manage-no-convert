@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PlaylistInfo, PlaylistSong } from '../../../shared/types'
+import { errMsg } from '../../../shared/errors'
 import { Icon } from './Icon'
 import { RichText } from './RichText'
 
@@ -31,7 +32,7 @@ export function PlaylistManagerModal({ onClose }: { onClose: () => void }): JSX.
         setSongs(null)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
       setLists([])
       setSel(null)
       setSongs(null)
@@ -54,7 +55,7 @@ export function PlaylistManagerModal({ onClose }: { onClose: () => void }): JSX.
       setSongs(s)
     } catch (e) {
       if (my !== openSeq.current) return
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
       setSongs([])
     } finally {
       if (my === openSeq.current) setSongsLoading(false)
@@ -68,7 +69,7 @@ export function PlaylistManagerModal({ onClose }: { onClose: () => void }): JSX.
       await fn()
       await loadLists(keepSel)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
     } finally {
       setBusy(false)
     }

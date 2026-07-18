@@ -47,7 +47,8 @@ import {
   libTrash,
   libWriteMeta
 } from './core/librarymgr'
-import { mergeKey } from '../shared/songid'
+import { mergeBoth } from '../shared/songid'
+import { asError } from '../shared/errors'
 import type { SongMeta } from '../shared/types'
 import { invalidateLibraryIndex } from './core/playlists'
 import { getPreview } from './core/preview'
@@ -101,24 +102,13 @@ export function registerIpc(): void {
         // Spadly-li OBĚ, propaguj chybu (jinak by prázdný „success" ukázal
         // „Nothing found" místo chybové hlášky jako u jednotlivých databází).
         if (rv.status === 'rejected' && en.status === 'rejected') {
-          throw rv.reason instanceof Error ? rv.reason : new Error(String(rv.reason))
+          throw asError(rv.reason)
         }
         const rvSongs = rv.status === 'fulfilled' ? rv.value.songs : []
         const enSongs = en.status === 'fulfilled' ? en.value.songs : []
-        const seen = new Set<string>()
-        const merged: SongResult[] = []
-        // Pořadí slučování: normálně Encore první (přímý .sng hosting bývá
-        // spolehlivější než GDrive scrape). VÝJIMKA „Most downloaded": Encore počet
-        // stažení NEMÁ (řadí se náhodně), takže by se necharakterně tlačil nahoru —
-        // proto u tohoto řazení dáme napřed RhythmVerse, kde downloads dávají smysl.
-        const ordered = sort === 'downloads' ? [...rvSongs, ...enSongs] : [...enSongs, ...rvSongs]
-        // Dedup klíč `mergeKey` sdílíme s rendererem (hluboké „Both" ve store).
-        for (const s of ordered) {
-          const k = mergeKey(s)
-          if (seen.has(k)) continue
-          seen.add(k)
-          merged.push(s)
-        }
+        // Sloučení + dedup + pořadí sdílíme s rendererem (hluboká „Both" ve store),
+        // ať mělké a hluboké stránky řadí identicky — viz `mergeBoth`.
+        const merged = mergeBoth(rvSongs, enSongs, sort)
         // „Both" posouvá obě DB po stránkách v ZÁKRYTU (stránka P = RV[P]+Encore[P]),
         // takže STRÁNEK je tolik, co má delší katalog — NE součet obou (ten by
         // nafoukl pager o prázdné zadní stránky a rozbil losování „Surprise me").
@@ -346,7 +336,10 @@ export function registerIpc(): void {
       }
     }
   }
-  void pollGame()
+  // První poll ODLOŽ o ~1,2 s — spouští `tasklist` procesy, které by hned na
+  // startu konkurovaly CPU při náběhu okna. Herní stav se tak zjistí o chvíli
+  // později (zanedbatelné), ale launch je plynulejší.
+  setTimeout(() => void pollGame(), 1200)
   if (gamePollHandle) clearInterval(gamePollHandle)
   gamePollHandle = setInterval(pollGame, 3000)
 }

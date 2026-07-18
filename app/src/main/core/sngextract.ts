@@ -10,6 +10,7 @@ import { join } from 'path'
 import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
 import { SngStream } from 'parse-sng'
+import { asError } from '../../shared/errors'
 
 /** Magic prefix `SNGPKG` (ASCII). */
 const SNG_MAGIC = Buffer.from([0x53, 0x4e, 0x47, 0x50, 0x4b, 0x47])
@@ -71,7 +72,7 @@ export async function extractSng(
       // Zavři zdrojový read stream, ať se při timeout/chybě neleakuje file handle
       // (write stream aktuálního souboru dobíhá přes pipeline a uzavře se sám).
       nodeStream.destroy()
-      if (err) reject(err instanceof Error ? err : new Error(String(err)))
+      if (err) reject(asError(err))
       else resolve()
     }
     const arm = (): void => {

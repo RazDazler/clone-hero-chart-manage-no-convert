@@ -8,6 +8,7 @@ import { existsSync, readdirSync, statSync } from 'fs'
 import { dirname, join } from 'path'
 import { promisify } from 'util'
 import { getConfig } from './config'
+import { errMsg } from '../../shared/errors'
 
 const execAsync = promisify(exec)
 
@@ -171,7 +172,7 @@ export function launchGame(): { ok: true } | { ok: false; error: string } {
     child.unref()
     return { ok: true }
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    return { ok: false, error: errMsg(err) }
   }
 }
 
@@ -195,7 +196,7 @@ export function launchYarg(): { ok: true } | { ok: false; error: string } {
     child.unref()
     return { ok: true }
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    return { ok: false, error: errMsg(err) }
   }
 }
 

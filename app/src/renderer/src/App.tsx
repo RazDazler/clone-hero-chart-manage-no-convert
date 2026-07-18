@@ -555,6 +555,10 @@ export function App(): JSX.Element {
             <SortSelect />
           </div>
         </div>
+      ) : loading && !surprise ? (
+        // Při načítání drží lišta jen SVÉ MÍSTO (prázdná, žádné placeholdery), ať
+        // se .tablewrap neroztáhne přes prostor „results found" / Sort by / All.
+        <div className="resultsbar resultsbar--skeleton" aria-hidden="true" />
       ) : null}
 
       <div className="tablewrap">
@@ -584,11 +588,26 @@ export function App(): JSX.Element {
                 <div className="sk-main">
                   <span className="sk sk--title" />
                   <span className="sk sk--sub" />
-                  <span className="sk sk--chips" />
+                  {/* Řádek odznaků: čas + formát + obtížnost — 3 pilulky různé šířky. */}
+                  <div className="sk-meta">
+                    <span className="sk sk--pill sk--pill-len" />
+                    <span className="sk sk--pill sk--pill-fmt" />
+                    <span className="sk sk--pill sk--pill-diff" />
+                  </div>
                 </div>
+                {/* Blok nástrojů: 5 sloupců (ikona + popisek + řada 6 teček),
+                    přesně jako .instruments ve skutečné řádce. */}
                 <div className="sk-diffs">
-                  {Array.from({ length: 5 }).map((_, d) => (
-                    <span className="sk sk--diff" key={d} />
+                  {Array.from({ length: 5 }).map((_, c) => (
+                    <div className="sk-inst" key={c}>
+                      <span className="sk sk--inst-icon" />
+                      <span className="sk sk--inst-label" />
+                      <div className="sk-inst-dots">
+                        {Array.from({ length: 6 }).map((_, d) => (
+                          <span className="sk sk--dot" key={d} />
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <span className="sk sk--btn" />
@@ -640,6 +659,9 @@ export function App(): JSX.Element {
 
       {source.length > 0 && !surprise ? (
         <Pager visibleCount={visible.length} matchTotal={deep ? filteredAll.length : undefined} />
+      ) : loading && !surprise ? (
+        // Prázdný pager — drží jen spodní odsazení, ať shimmer zůstane v okně výsledků.
+        <div className="pager pager--skeleton" aria-hidden="true" />
       ) : null}
         </main>
       </div>

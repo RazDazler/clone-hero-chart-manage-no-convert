@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { SongMeta } from '../../../shared/types'
+import { errMsg } from '../../../shared/errors'
 
 const FIELDS: { key: keyof SongMeta; label: string }[] = [
   { key: 'name', label: 'Title' },
@@ -46,7 +47,7 @@ export function SongMetaDialog({
       onSaved()
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
       setSaving(false)
     }
   }
