@@ -30,10 +30,12 @@ export type RunningGame = GameId | null
 
 /** macOS: standardní umístění Clone Hero.app. */
 function macChAppCandidates(): string[] {
+  const home = homedir()
   return [
     '/Applications/Clone Hero.app',
-    join(homedir(), 'Applications', 'Clone Hero.app'),
-    join(homedir(), 'Downloads', 'Clone Hero.app')
+    join(home, 'Applications', 'Clone Hero.app'),
+    join(home, 'Clone Hero', 'Clone Hero.app'), // rozložení jako na Windows
+    join(home, 'Downloads', 'Clone Hero.app')
   ]
 }
 

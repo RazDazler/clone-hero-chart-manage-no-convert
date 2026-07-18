@@ -78,10 +78,22 @@ function findFile(roots: string[], fileName: string, maxDepth: number): string |
 
 /** Zkusí najít složku hry Clone Hero a vrátí cestu k jejímu Songs adresáři. */
 function detectSongsDir(): string {
-  // macOS: hra kvůli sandboxu NEUKLÁDÁ Songs vedle .app bundlu, ale do
-  // Application Support. Je to pevné a spolehlivé — bereme to jako default.
+  // macOS: Songs složka je v CH volitelná a lidé ji mají na různých místech.
+  // Projdeme známé kandidáty a vrátíme první, který REÁLNĚ existuje; když nic,
+  // padneme na viditelnou domovskou složku (ne skrytou v Library).
   if (isMac) {
-    return join(homedir(), 'Library', 'Application Support', 'com.srylain.CloneHero', 'Songs')
+    const home = homedir()
+    const macCandidates = [
+      join(home, 'Clone Hero', 'Songs'), // stejné rozložení jako Windows G:\Clone Hero\Songs
+      join(home, 'Documents', 'Clone Hero', 'Songs'),
+      join(home, 'Music', 'Clone Hero', 'Songs'),
+      join(home, 'Downloads', 'Clone Hero', 'Songs'),
+      join(home, 'Applications', 'Clone Hero', 'Songs'),
+      // CH sem ukládá nastavení/skóre; někdy tu bývá i Songs.
+      join(home, 'Library', 'Application Support', 'com.srylain.CloneHero', 'Songs')
+    ]
+    for (const c of macCandidates) if (existsSync(c)) return c
+    return join(home, 'Clone Hero', 'Songs')
   }
 
   const fallback = 'G:\\Clone Hero\\Songs'
