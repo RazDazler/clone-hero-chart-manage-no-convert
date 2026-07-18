@@ -107,13 +107,14 @@ export function DownloadQueue(): JSX.Element | null {
           </button>
         ) : null}
       </div>
-      {open && anyDone ? (
-        <div className="queue__rescan">
-          <span>New songs appear in-game after you scan the library (Settings → Scan Songs).</span>
-        </div>
-      ) : null}
-      {open ? (
-        <div className="queue__list">
+      <div className="queue__body">
+        <div className="queue__body-inner">
+          {anyDone ? (
+            <div className="queue__rescan">
+              <span>New songs appear in-game after you scan the library (Settings → Scan Songs).</span>
+            </div>
+          ) : null}
+          <div className="queue__list">
           {display.map((job) => {
             // „Canceling" = uživatel klikl zrušit, ale krok ještě dobíhá (job
             // není terminální). Ukáž to hned, i než dorazí finální stav z main.
@@ -155,7 +156,8 @@ export function DownloadQueue(): JSX.Element | null {
             )
           })}
           </div>
-        ) : null}
+          </div>
+        </div>
         </div>
       </div>
     </div>

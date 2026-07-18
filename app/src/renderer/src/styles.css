@@ -2449,11 +2449,24 @@ body {
   display: flex;
   flex-direction: column;
 }
+/* Sbalení/rozbalení fronty kliknutím na hlavičku — plynulá roleta (grid-template-rows
+   0fr↔1fr), stejně jako panel filtrů. Obsah se vždy vykresluje, jen se výškově zajíždí. */
+.queue__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.queue--open .queue__body {
+  grid-template-rows: 1fr;
+}
+.queue__body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
 @media (prefers-reduced-motion: reduce) {
-  .queue-wrap {
-    transition: none;
-  }
-  .queue-inner {
+  .queue-wrap,
+  .queue-inner,
+  .queue__body {
     transition: none;
   }
 }
@@ -2529,6 +2542,7 @@ body {
 }
 .queue__list {
   overflow-y: auto;
+  max-height: 30vh; /* vlastní strop → list se scrolluje uvnitř roletové animace */
   padding: 0 14px 12px;
   display: flex;
   flex-direction: column;
