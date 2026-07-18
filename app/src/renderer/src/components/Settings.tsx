@@ -500,7 +500,7 @@ export function Settings(): JSX.Element | null {
                   Show / hide window
                   <span
                     className="info"
-                    title="Global hotkey – works even when the game window has focus. Most users don't need it (just Alt+Tab to bring the app forward)."
+                    title={`Global hotkey – works even when the game window has focus. Most users don't need it (just ${IS_MAC ? 'Cmd+Tab' : 'Alt+Tab'} to bring the app forward).`}
                   >
                     <Icon name="info" size={13} />
                   </span>
@@ -514,9 +514,10 @@ export function Settings(): JSX.Element | null {
               </label>
             </div>
             <p className="field__hint">
-              Optional global shortcut to bring the app forward from anywhere. Most users just use
-              Alt+Tab — leave it blank to disable. Click the field and press a key or combo (e.g.{' '}
-              <code>F10</code> or <code>Control+Shift+H</code>); Backspace clears it.
+              Optional global shortcut to bring the app forward from anywhere. Most users just use{' '}
+              {IS_MAC ? 'Cmd+Tab' : 'Alt+Tab'} — leave it blank to disable. Click the field and press
+              a key or combo (e.g. <code>F10</code> or{' '}
+              <code>{IS_MAC ? '⌘⇧H' : 'Control+Shift+H'}</code>); Backspace clears it.
             </p>
           </fieldset>
               </section>

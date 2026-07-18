@@ -54,7 +54,7 @@ function toAccelerator(e: React.KeyboardEvent): { accel: string | null; reason?:
     if (!isAsciiPrintable(k)) {
       return {
         accel: null,
-        reason: `“${k}” isn't supported — Electron global shortcuts allow only ASCII keys. Try F-keys (F1–F12) or a combo like Ctrl+Shift+H.`
+        reason: `“${k}” isn't supported — Electron global shortcuts allow only ASCII keys. Try F-keys (F1–F12) or a combo like ${IS_MAC ? '⌘⇧H' : 'Ctrl+Shift+H'}.`
       }
     }
     main = k.toUpperCase()
