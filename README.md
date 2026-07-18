@@ -1,7 +1,11 @@
 <p align="center">
-  <img alt="Chart Manager main window, searching charts" width="900" src="https://github.com/user-attachments/assets/8d86b3e1-8a77-4c77-9b3b-4feafcaccb44" />
+  <a href="https://chartmanager.pages.dev/" title="Open the Chart Manager landing page">
+    <img alt="Chart Manager — a desktop app for Clone Hero and YARG. Click to visit the landing page." width="880" src="docs/img/landing-page.jpg" />
+  </a>
 </p>
-  <a href="https://chartmanager.pages.dev/"><b>chartmanager.pages.dev</b></a>
+
+<p align="center">
+  <a href="https://chartmanager.pages.dev/"><b>chartmanager.pages.dev&nbsp;↗</b></a>
 </p>
 
 # Clone Hero Chart Manager (CHM)
