@@ -10,11 +10,11 @@
 
 # Clone Hero Chart Manager (CHM)
 
-A Windows desktop app for searching, downloading and automatically converting
-Clone Hero charts from the [RhythmVerse](https://rhythmverse.co/songfiles/game)
+A **Windows and macOS** desktop app for searching, downloading and automatically
+converting Clone Hero charts from the [RhythmVerse](https://rhythmverse.co/songfiles/game)
 and [Chorus Encore](https://www.enchor.us) databases — with drag‑and‑drop
 manual installs, an in‑game hotkey reminder pill, and one‑click launch of
-Clone Hero or YARG.
+Clone Hero (YARG launch is Windows‑only — it has no official macOS build).
 
 **Import a Spotify playlist.** Paste a public Spotify playlist link and
 CHM finds a chart for every song in it, then downloads them all in a few
@@ -171,11 +171,15 @@ clicks — a whole setlist from a playlist you already love. See
 - **Focus restore** — when you hide CHM (hotkey / minimize button), the app
   brings the running game (Clone Hero or YARG) back to the foreground so you
   don't have to click on its window.
+- **macOS** — Clone Hero is fully supported here too: detection, launch
+  (`open -a`) and focus‑back (AppleScript `activate`). YARG is Windows‑only, so
+  its launcher and settings are hidden on macOS. Songs auto‑detects from
+  `~/Clone Hero/Songs` and other common locations.
 
 ### Hotkey reminder pill (optional)
 - Tiny **glassmorphism pill** floating in a corner of the screen while
   Clone Hero is running, showing the show/hide hotkey (e.g.
-  `🎸 Ctrl + I`).
+  `🎸 Ctrl + I`, or `🎸 ⌘+I` on macOS).
 - Click‑through, can't steal focus from the game, neutral frosted‑glass
   styling. 4 positions (top‑left / top‑right / bottom‑left / bottom‑right).
 - Off by default; toggle in Settings.
@@ -228,7 +232,12 @@ Clone Hero Song Downloader/
 
 ## Install
 
-### Installer (recommended)
+> **Windows** ships as a signed‑by‑you installer / portable `.exe` with full
+> auto‑update. **macOS** ships as an unsigned `.dmg` (see below) — everything in
+> the app works the same, but the first launch needs a right‑click → Open and
+> updates are manual.
+
+### Windows — Installer (recommended)
 
 Download **`CHM-Setup-<version>.exe`** and run it. The installer is around
 120 MB because everything the app needs — the **Onyx** converter, **modern
@@ -237,19 +246,34 @@ so there are no extra downloads. The installer creates Start‑menu and
 desktop shortcuts and registers an entry under *Apps & Features* named
 **Clone Hero Chart Manager**.
 
-### Portable
+### Windows — Portable
 
 Alternatively, **`CHM-Portable-<version>.exe`** is a single‑file portable
 build that runs without installing. Drop it anywhere (its own folder is
 fine) and double‑click. Same features, no registry entries.
 
+### macOS
+
+Download **`CHM-<version>-mac-<arch>.dmg`** (arm64 for Apple Silicon, x64 for
+Intel), open it and drag **Clone Hero Chart Manager** to Applications. Because
+the build is **unsigned**, the first launch needs a **right‑click → Open**
+(a normal double‑click only offers *Cancel*); after that it opens normally.
+
+On Apple Silicon the bundled Onyx converter runs through **Rosetta 2** — install
+it once with `softwareupdate --install-rosetta --agree-to-license` if you don't
+have it. To build the `.dmg` yourself, see [docs/mac-build.md](docs/mac-build.md).
+
 ### Updates
 
-The installer build keeps itself up to date: CHM checks GitHub Releases in the
-background and offers to download and install a new version in one click
-(there's also a **Check for updates** button next to the version number in the
-sidebar). The portable build shows the same notice but you grab the new `.exe`
-yourself.
+On **Windows** the installer build keeps itself up to date: CHM checks GitHub
+Releases in the background and offers to download and install a new version in
+one click (there's also a **Check for updates** button next to the version
+number in the sidebar). The portable build shows the same notice but you grab
+the new `.exe` yourself.
+
+On **macOS** auto‑install isn't available (that needs an Apple‑signed build), so
+CHM does the same check and shows a **View release** banner / button that opens
+the new GitHub release — you download the new `.dmg` and replace the app.
 
 ### First launch
 
@@ -260,10 +284,16 @@ On first launch the app tries to auto‑detect your Clone Hero installation:
    `C:\Program Files (x86)\Clone Hero`, and the Steam library under
    `Program Files (x86)\Steam\steamapps\common\Clone Hero`).
 
-If both fail, **Settings opens automatically** and you point it at your
+On **macOS** it probes the usual locations instead (`~/Clone Hero/Songs`,
+`~/Documents/Clone Hero/Songs`, `~/Music/…`, and Clone Hero's Application
+Support folder) and picks the first that exists.
+
+If detection fails, **Settings opens automatically** and you point it at your
 `Songs` folder once. Everything else is configured from there.
 
 ### Build it yourself
+
+**Windows** (PowerShell):
 
 ```powershell
 cd "app"
@@ -272,20 +302,31 @@ npm run dist            # → app\dist\CHM-Setup-<version>.exe (installer)
 npm run dist:portable   # → app\dist\CHM-Portable-<version>.exe (portable)
 ```
 
-Both commands write their `.exe` (plus the installer's `latest.yml` /
-`.blockmap` for auto‑update) into **`app/dist/`** — those are the files
-published to
-[GitHub Releases](https://github.com/xlzipx/clone-hero-chart-manager/releases).
+**macOS** (must be built on a Mac — electron‑builder can't make a `.dmg` from
+Windows):
 
-Requirements to build: Windows, Node.js 20+ (tested on 24), plus the bundled
-tools present locally:
+```bash
+cd app
+npm install
+npm run dist:mac        # → app/dist/CHM-<version>-mac-<arch>.dmg (+ .zip)
+```
 
-- **Onyx CLI** at `native/onyx/onyx-command-line-*/onyx.exe` — download
-  `onyx-command-line-*-windows-x64.zip` from the
-  [releases](https://github.com/mtolly/onyx/releases) and unzip it there.
-- **`7z.exe` / `7z.dll`** (modern 7‑Zip, LGPL — needed for RAR5) in
-  `native\7zip\`. Extract them from the installer at
-  https://www.7-zip.org if missing.
+Both platforms write into **`app/dist/`** — those are the files published to
+[GitHub Releases](https://github.com/xlzipx/clone-hero-chart-manager/releases)
+(the Windows installer also emits `latest.yml` / `.blockmap` for auto‑update).
+
+Requirements to build: Node.js 20+ (tested on 24), plus the bundled tools
+present locally under `native/`:
+
+- **Onyx CLI** — Windows: `native/onyx/onyx-command-line-*/onyx.exe`
+  (`onyx-command-line-*-windows-x64.zip`); macOS: `native/onyx-mac/`
+  (`onyx-*-macos-x64.zip`). Grab them from the
+  [Onyx releases](https://github.com/mtolly/onyx/releases).
+- **7‑Zip** (LGPL — needed for RAR5) — Windows: `7z.exe` / `7z.dll` in
+  `native/7zip/` from https://www.7-zip.org; macOS: the `7zz` binary in
+  `native/7zip-mac/`.
+
+The full macOS build walkthrough is in [docs/mac-build.md](docs/mac-build.md).
 
 `scripts\make-release.ps1` packages the portable .exe with Onyx + 7‑Zip
 sidecars and a README into a Release folder + ZIP if you want a "drop
@@ -321,9 +362,10 @@ anywhere" bundle for sharing.
 - **Right** — **My Library** (the `Songs` file manager), **Settings**, **Hide
   to tray** and **Quit**.
 
-**Settings** covers: Songs folder, an optional chart folder‑name template,
-`Clone Hero.exe` and `YARG.exe` path overrides, results per page, UI scale,
-the hotkey‑reminder pill (toggle + position) and the quick‑toggle hotkey.
+**Settings** covers: Songs folder, an optional chart folder‑name template, the
+Clone Hero path override (`Clone Hero.exe` on Windows, `Clone Hero.app` on
+macOS) plus a `YARG.exe` override on Windows, results per page, UI scale, the
+hotkey‑reminder pill (toggle + position) and the quick‑toggle hotkey.
 
 The **Launch / Switch to Clone Hero** and **Launch YARG** buttons live in the
 left sidebar, not the title bar.
