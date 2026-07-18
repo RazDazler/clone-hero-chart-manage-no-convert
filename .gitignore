@@ -26,6 +26,8 @@ Thumbs.db
 # (direct upload, ne přes GitHub), takže zdroj nemusí být v repu.
 /pages/
 /new pages/
+# Lokální zálohy bezztrátových masterů obrázků landing page (mimo deploy).
+/_landing-png-src/
 
 # Video assets (lokální, ne pro repo — pošleme přes YouTube)
 how it works video/
