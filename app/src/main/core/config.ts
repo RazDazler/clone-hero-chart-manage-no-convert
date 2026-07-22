@@ -7,6 +7,7 @@ import { dirname, join } from 'path'
 import { DEFAULT_FOLDER_TEMPLATE } from '../../shared/foldertemplate'
 import type { AppConfig } from '../../shared/types'
 import { cloneHeroArtifactName, isMac, onyxBinaryName, sevenZipBinaryName } from './platform'
+import { setForceNativeFormats } from './gameformats'
 
 let cached: AppConfig | null = null
 
@@ -174,7 +175,8 @@ function defaults(): AppConfig {
     // bit-identické chování jako dřív (i po aktualizaci; `{...def, ...parsed}`
     // níže dosadí tyhle defaulty do starých configů, které pole ještě nemají).
     folderTemplate: DEFAULT_FOLDER_TEMPLATE,
-    autoTargetFolder: false
+    autoTargetFolder: false,
+    keepRb3Native: false
   }
 }
 
@@ -195,6 +197,7 @@ export function getConfig(): AppConfig {
     result = def
   }
   cached = result
+  setForceNativeFormats(result.keepRb3Native)
   return result
 }
 
@@ -209,5 +212,6 @@ export function setConfig(patch: Partial<AppConfig>): AppConfig {
   const dir = app.getPath('userData')
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   writeFileSync(configPath(), JSON.stringify(next, null, 2), 'utf-8')
+  setForceNativeFormats(next.keepRb3Native)
   return next
 }
