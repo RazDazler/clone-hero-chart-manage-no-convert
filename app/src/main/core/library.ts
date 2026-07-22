@@ -7,6 +7,8 @@ import { invalidateLibraryIndex } from './playlists'
 import { renderFolderTemplate } from '../../shared/foldertemplate'
 import { songKey } from '../../shared/songid'
 import type { SongResult } from '../../shared/types'
+import { findConFiles } from './filetype'
+import { getForceNativeFormats } from './gameformats'
 
 const SONG_MARKERS = ['song.ini', 'notes.chart', 'notes.mid']
 
@@ -334,6 +336,37 @@ export async function install(
   // Žádná složka s písní → zkus volné .sng soubory (CH je čte přímo).
   const sngs = findSngFiles(sourceRoot)
   if (sngs.length === 0) {
+    // Ani .sng → zkus raw RB3 CON (setting "keep RB3 native" je zapnutý,
+    // takže konverze byla přeskočena a CON zůstal jako je).
+    const cons = findConFiles(sourceRoot)
+    if (cons.length > 0) {
+      const singleCon = cons.length === 1
+      for (const con of cons) {
+        const baseName = singleCon
+          ? tpl.name
+          : sanitize(con.split(/[\\/]/).pop() || `${song.artist} - ${song.title}`)
+        const dest = uniqueFile(songsDir, baseName, '.rb3con')
+        await fsp.copyFile(con, dest)
+        installed.push(dest)
+      }
+      invalidateLibraryIndex()
+      invalidateOwnedIndex()
+      return { installedPaths: installed }
+    }
+    
+     // Setting zapnutý a nic výše nepasovalo (např. raw PS3 obsah s
+    // rozházenými .mid_edat / .milo_ps3 soubory, nebo cokoli jiného, co
+    // neumíme rozpoznat) → nekontroluj obsah, zkopíruj vše jak je. Uživatel
+    // chce spravovat/archivovat RB3 soubory, ne je nutně hrát v CH.
+    if (getForceNativeFormats()) {
+      const dest = uniqueDir(join(songsDir, tpl.name))
+      await fsp.cp(sourceRoot, dest, { recursive: true })
+      installed.push(dest)
+      invalidateLibraryIndex()
+      invalidateOwnedIndex()
+      return { installedPaths: installed }
+    }
+    
     const sample = listFirstFiles(sourceRoot)
     const sampleLower = sample.join(' ').toLowerCase()
 
@@ -342,14 +375,14 @@ export async function install(
     // konvertovat bez Sony EDAT klíčů.
     if (/\.mid_edat\b|\.milo_ps3\b|songs\.dta/.test(sampleLower)) {
       throw new Error(
-        'This is raw Rock Band 3 PS3 source content (encrypted .mid_edat / .milo_ps3 files), not a Clone Hero chart. It cannot be converted without Sony PS3 EDAT keys. Try the Xbox 360 or native Clone Hero version of this song instead.'
+        'This is raw Rock Band 3 PS3 source content (encrypted .mid_edat / .milo_ps3 files), not a Clone Hero chart. It cannot be converted without Sony PS3 EDAT keys. Try the Xbox 360 or native Clone Hero version of this song instead.\nIf you intended to download a Rock Band song for use in Rock Band then enable "Keep original format" in settings'
       )
     }
 
     const list =
       sample.length > 0 ? `\nFound files: ${sample.join(', ')}` : '\nThe archive appears to be empty.'
     throw new Error(
-      `No song found in the content (looking for song.ini / notes.chart / notes.mid / .sng).${list}\nThis archive may not be Clone Hero–compatible (e.g. a raw Rock Band PS3 PKG without a converted chart).`
+      `No song found in the content (looking for song.ini / notes.chart / notes.mid / .sng).${list}\nThis archive may not be Clone Hero–compatible (e.g. a raw Rock Band PS3 PKG without a converted chart.)\nIf you intended to download a Rock Band song for use in Rock Band then enable "Keep original format" in settings`
     )
   }
   const singleSng = sngs.length === 1
