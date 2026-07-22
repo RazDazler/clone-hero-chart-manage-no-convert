@@ -20,6 +20,7 @@ import {
 import { convertCon, convertDtx } from './converter'
 import { install } from './library'
 import { extractSng, isSngFile } from './sngextract'
+import { getForceNativeFormats } from './gameformats'
 
 // Přípony, které z názvu odřízneme. NE obecné `.\w+$` — to by zmršilo názvy
 // složek s tečkou (např. „Mr. Big - To Be With You").
@@ -328,7 +329,7 @@ class JobManager extends EventEmitter {
       // 3) Konverze (pokud potřeba) — nejdřív CON, jinak zkus DTXMania.
       const conFiles = findConFiles(workDir)
       let installSource = workDir
-      if (conFiles.length > 0) {
+      if (conFiles.length > 0 && !getForceNativeFormats()) {
         this.setStage(
           id,
           'converting',
@@ -352,7 +353,7 @@ class JobManager extends EventEmitter {
           done++
         }
         installSource = convOut
-      } else {
+      } else if (conFiles.length === 0) { // dont try to convert a con with a dtx converter
         const dtxEntries = findDtxEntries(workDir)
         if (dtxEntries.length > 0) {
           this.setStage(
