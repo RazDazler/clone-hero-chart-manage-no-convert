@@ -25,8 +25,26 @@ export function parsePhpStringArray(serialized: string | null | undefined): stri
  */
 const NATIVE_FORMATS = new Set(['clonehero', 'ch', 'chart', 'ps', 'phaseshift', 'sng', 'raw'])
 
+/**
+ * When true, formatNeedsConversion() always returns false — i.e. every
+ * format (including rb3xbox CON) is treated as native/installable as-is,
+ * skipping the Onyx conversion step entirely.
+ * Controlled by the "Keep RB3 as CON / don't convert" setting.
+ */
+let forceNativeFormats = false
+
+/** Call this from wherever settings are loaded/changed (e.g. config.ts / ipc.ts). */
+export function setForceNativeFormats(enabled: boolean): void {
+  forceNativeFormats = enabled
+}
+
+export function getForceNativeFormats(): boolean {
+  return forceNativeFormats
+}
+
 /** Klasifikuje jeden formát: vrací true, pokud je potřeba konverze přes ChConvert. */
 export function formatNeedsConversion(format: string | null | undefined): boolean {
+  if (forceNativeFormats) return false
   if (!format) return false
   const f = format.toLowerCase().trim()
   if (NATIVE_FORMATS.has(f)) return false
