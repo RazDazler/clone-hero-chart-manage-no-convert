@@ -390,6 +390,31 @@ export function Settings(): JSX.Element | null {
               folder, so no separate library is needed.
             </p>
           </label>
+                
+          <fieldset className="field">
+            <span>
+              Don't convert songs
+              <span
+                className="info"
+                title="Turn this on to keep songs in their original format even if the format is not compatable with Clone Hero/YARG."
+              >
+                <Icon name="info" size={13} />
+              </span>
+            </span>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={draft.keepRb3Native}
+                onChange={(e) => setDraft({ ...draft, keepRb3Native: e.target.checked })}
+              />
+              <span>Keep original song format.</span>
+            </label>
+            <p className="field__hint">
+              Clone Hero can't play RB3 CON files directly, so this is only useful if you're
+              managing songs for Rock Band 3 itself rather than Clone Hero.
+            </p>
+          </fieldset>
+                
               </section>
             </div>
 
