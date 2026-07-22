@@ -221,6 +221,7 @@ export interface AppConfig {
    * false (výchozí) = ukázat TargetFolderModal jako dosud.
    */
   autoTargetFolder: boolean
+  keepRb3Native: boolean // when true, RB3/CON charts are installed as-is, never sent through Onyx
 }
 
 export type RhythmVerseSystem = 'ch' | 'ps' | 'rb3' | 'all'
